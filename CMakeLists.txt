@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  image_transport
+  cv_bridge
 )
 
 ## System dependencies are found with CMake's conventions
@@ -114,6 +116,30 @@ include_directories(
 # target_link_libraries(object_recognition_node
 #   ${catkin_LIBRARIES}
 # )
+
+# OpenCV
+FIND_PACKAGE( OpenCV REQUIRED )
+include_directories(${OpenCV_INCLUDE_DIRS})
+link_directories(${OpenCV_LIBRARY_DIRS})
+link_libraries(${OpenCV_LIBRARIES})
+
+# PCL
+find_package(PCL REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+link_libraries(${PCL_LIBRARIES})
+
+# Sources
+file (GLOB_RECURSE SOURCES src/*.cpp)
+## Declare a cpp executable
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+## Add cmake target dependencies of the executable/library
+## as an example, message headers may need to be generated before nodes
+# add_dependencies(object_detection_node object_detection_generate_messages_cpp)
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #############
 ## Install ##

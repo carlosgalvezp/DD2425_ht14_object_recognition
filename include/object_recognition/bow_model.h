@@ -4,16 +4,7 @@
 #include <vector>
 #include <string>
 
-/**
- * @brief Model of an object. Represented by:
- * - Its name (string)
- * - Centroid of the associated cluster, as a N-dimensional vector of double
- */
-struct Object_Model
-{
-    std::string name_;
-    std::vector<double> descriptor_;
-};
+struct Object_Model{};
 
 /**
  * @brief Class that contains the model for the Bag of Words algorithm.

@@ -132,12 +132,14 @@ link_libraries(${PCL_LIBRARIES})
 
 # Sources
 #file (GLOB_RECURSE SOURCES src/bag_of_words.cpp src/bow_model.cpp feature_extractor.cpp include/${PROJECT_NAME}/*.h)
-file (GLOB SOURCES src/*.cpp include/${PROJECT_NAME}/*.h)
+file (GLOB SOURCES src/*.cpp include/${PROJECT_NAME}/*.h include/${PROJECT_NAME}/*.hpp)
 list (REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_node.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training_node.cpp)
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training_node.cpp
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/test_object_recognition.cpp)
 ## Declare a cpp executable
 add_executable(${PROJECT_NAME} src/object_recognition_node.cpp ${SOURCES})
 add_executable(vision_training src/vision_training_node.cpp ${SOURCES})
+add_executable(test_object_recognition src/test_object_recognition.cpp ${SOURCES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -146,6 +148,7 @@ add_executable(vision_training src/vision_training_node.cpp ${SOURCES})
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(vision_training ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(test_object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #############
 ## Install ##
 #############

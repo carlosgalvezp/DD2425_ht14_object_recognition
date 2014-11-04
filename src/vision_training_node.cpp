@@ -1,6 +1,9 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <dirent.h>
+#include <object_recognition/feature_extractor.h>
+
 // ROS
 #include "ros/ros.h"
 #include <std_msgs/String.h>
@@ -17,6 +20,7 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl/features/pfhrgb.h>
 #include <pcl/io/pcd_io.h>
 
 // OpenCV
@@ -38,15 +42,19 @@ class Vision_Training{
     typedef message_filters::Synchronizer<RGBD_Sync_Policy> RGBD_Sync;
 
 public:
-    Vision_Training(const ros::NodeHandle& n, std::string path, std::string model_name);
+    Vision_Training(const ros::NodeHandle& n);
     /**
      * @brief Save data at a given frequency
      */
-    void run();
+    void record_data(std::string path, std::string model_name);
+
+    /**
+     * @brief Read the PCD data, computes the feature model, and saves it into .txt file
+     */
+    void compute_model(std::string path);
+
 private:
     ros::NodeHandle n_;
-    std::string model_name_, path_;
-    int n_item_;
 
     image_transport::ImageTransport rgb_transport_;
     image_transport::ImageTransport depth_transport_;
@@ -75,6 +83,9 @@ private:
      */
     void PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg);
 
+    void process_model_folder(std::string path);
+    void process_model(std::string path);
+
 };
 
 // =============================================================================
@@ -82,27 +93,50 @@ private:
 
 int main(int argc, char* argv[])
 {
-    if (argc < 3)
+    if (argc < 2)
     {
-        ROS_ERROR("Usage: rosrun vision_training <path> <model_name>");
+        ROS_ERROR("Usage: rosrun vision_training <option>");
+        ROS_ERROR("Options: ");
+        ROS_ERROR("1 - Record PCD point clouds of the object");
+        ROS_ERROR("2 - Given the PCD files, extract features and descriptors and store them");
         return -1;
     }
 
     // ** Init node
-    ROS_INFO("Saving data for model of %s",argv[1]);
     ros::init(argc, argv, "vision_training");
     ros::NodeHandle n;
 
     // ** Create object recognition object
-    Vision_Training o(n, argv[1], argv[2]);
-    o.run();
+    Vision_Training o(n);
+
+    int option = std::atoi(argv[1]);
+    switch (option)
+    {
+        case 1:
+            if (argc < 4)
+            {
+                ROS_ERROR("Usage: 'rosrun vision_training 1 <path-to-saved-files> <model_name>");
+                return -1;
+            }
+            o.record_data(argv[2], argv[3]);
+        break;
+
+        case 2:
+            if (argc < 3)
+            {
+                ROS_ERROR("Usage: rosrun vision_training 2 <path-to-models>");
+                return -1;
+            }
+            o.compute_model(argv[2]);
+        break;
+    }
 
     return 0;
 }
 
 
-Vision_Training::Vision_Training(const ros::NodeHandle& n, std::string path, std::string model_name)
-    : n_(n), model_name_(model_name), path_(path), n_item_(1), rgb_transport_(n), depth_transport_(n)
+Vision_Training::Vision_Training(const ros::NodeHandle& n)
+    : n_(n), rgb_transport_(n), depth_transport_(n)
 {
     // ** Subscribers
     // Point Cloud
@@ -120,36 +154,105 @@ Vision_Training::Vision_Training(const ros::NodeHandle& n, std::string path, std
 
 }
 
-void Vision_Training::run()
+void Vision_Training::record_data(std::string path, std::string model_name)
 {
+    ROS_INFO("======= RECORDING DATA =======");
     // ** Publish data
     ros::Rate rate(PUBLISH_RATE);
-
+    int n_item = 1;
     while(ros::ok())
     {
         ROS_INFO("Reading data...");
         ros::spinOnce(); //Get data
 
         // ** Save pcd and images
-        ROS_INFO("Saving data %u...", n_item_);
+        ROS_INFO("Saving data %u...", n_item);
         // PCD
         if (cloud_ != 0)
         {
             std::stringstream ss, ss2, ss3;
-            ss << path_<<model_name_<<"_"<<n_item_<<".pcd";
+            ss << path<<model_name<<"/raw/"<<model_name<<"_"<<n_item<<".pcd";
             pcl::io::savePCDFile(ss.str(), *cloud_);
 
             // Images
-            ss2 << path_ <<model_name_<<"_RGB_"<<n_item_<<".png";
-            ss3 << path_ << model_name_<<"_D_"<<n_item_<<".png";
+            ss2 << path<<model_name<<"/raw/" <<model_name<<"_RGB_"<<n_item<<".png";
+            ss3 << path<<model_name<<"/raw/" << model_name<<"_D_"<<n_item<<".png";
             cv::imwrite(ss2.str(), rgb_img_);
             cv::imwrite(ss3.str(), depth_img_);
 
-            ++n_item_;
+            ++n_item;
         }
 
         // ** Sleep
         rate.sleep();
+    }
+}
+
+void Vision_Training::compute_model(std::string path)
+{
+    ROS_INFO("======= COMPUTING MODEL =======");
+    DIR *dir;
+    struct dirent *ent;
+    const char* path_c = path.c_str();
+    // ** Open base directory, which contains a folder for every model
+    if((dir = opendir(path_c)) != NULL)
+    {
+        std::cout << "Entering directory " << path << std::endl;
+        // ** Read entities (files or folders) and process folders only
+        while((ent = readdir(dir)) != NULL)
+        {
+            if(ent->d_type == DT_DIR && ent->d_name[0] != '.')
+            {
+                std::string model_name = ent->d_name;
+                std::string model_path = path + model_name;
+                process_model_folder(model_path);
+            }
+        }
+
+    }
+    else
+    {
+        std::cout <<"Can't read directory "<<path<<std::endl;
+    }
+}
+
+void Vision_Training::process_model_folder(std::string path)
+{
+    DIR *dir;
+    struct dirent *ent;
+    const char* path_c = (path+"/raw/").c_str();
+    // ** Open directory, which contains .pcd files of objects
+    if((dir = opendir(path_c)) != NULL)
+    {
+        std::cout << "Entering directory " << path << std::endl;
+        // ** Read entities (files or folders) and process folders only
+        while((ent = readdir(dir)) != NULL)
+        {
+            std::string f_name(ent->d_name);
+            if(ent->d_type == DT_REG && f_name[f_name.length()-1] == 'd') // .pcD, look only for pcd files
+            {
+                std::string cloud_path = path + "/raw/" + f_name;
+                std::string f_name_no_ext = f_name.substr(0, f_name.length()-4);
+                std::string desc_name = path + "/descriptors/"+f_name_no_ext + "_desc.pcd";
+
+                std::cout << "\t -"<< cloud_path<<std::endl;
+                std::cout << "\t Saving into "<<desc_name << std::endl;
+
+                // ** Process file
+                Feature_Extractor fo;
+                pcl::PointCloud<pcl::PFHRGBSignature250>::Ptr descriptors (new pcl::PointCloud<pcl::PFHRGBSignature250>);
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+                pcl::io::loadPCDFile(cloud_path, *cloud_in);
+                fo.get_descriptors(cloud_in, descriptors);
+                pcl::io::savePCDFile(desc_name, *descriptors);
+            }
+        }
+
+    }
+    else
+    {
+        std::cout <<"Can't read directory "<<path<<std::endl;
     }
 }
 

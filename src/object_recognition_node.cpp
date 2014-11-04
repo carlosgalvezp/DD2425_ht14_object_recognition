@@ -1,6 +1,7 @@
 #include <iostream>
 #include <ctime>
 #include <ras_utils/ras_utils.h>
+#include <object_recognition/object_recognition.h>
 // ROS
 #include "ros/ros.h"
 #include <std_msgs/String.h>
@@ -31,8 +32,8 @@
 #include <opencv2/highgui/highgui.hpp>
 
 #define QUEUE_SIZE 10
-#define CLOUD_RES  0.01 // [m]
-class Object_Recognition{
+
+class Object_Recognition_Node{
 
     typedef image_transport::ImageTransport ImageTransport;
     typedef image_transport::Publisher ImagePublisher;
@@ -45,13 +46,8 @@ class Object_Recognition{
     typedef message_filters::Synchronizer<RGBD_Sync_Policy> RGBD_Sync;
 
 public:
-    Object_Recognition(const ros::NodeHandle& n);
+    Object_Recognition_Node(const ros::NodeHandle& n);
 
-    /**
-     * @brief Callback to process registered point cloud
-     * @param pcl_msg
-     */
-    void PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg);
 private:
     ros::NodeHandle n_;
 
@@ -67,9 +63,9 @@ private:
 
     ros::Subscriber pcl_sub_;
 
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> pcl_viewer_;
+    bool process_PCL_;
 
-
+    Object_Recognition obj_recognition;
     /**
      * @brief Callback to process RGB and Depth image
      * @param rgb_msg
@@ -78,10 +74,11 @@ private:
     void RGBD_Callback(const sensor_msgs::ImageConstPtr& rgb_msg,
                        const sensor_msgs::ImageConstPtr& depth_msg);
 
-    void preprocessing(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in,
-                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud_out);
-    void segmentation(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in,
-                            pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud_out);
+    /**
+     * @brief Callback to process registered point cloud
+     * @param pcl_msg
+     */
+    void PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg);
 };
 
 // =============================================================================
@@ -94,21 +91,13 @@ int main(int argc, char* argv[])
     ros::NodeHandle n;
 
     // ** Create object recognition object
-    Object_Recognition o(n);
-
-    // ** Read pcd file
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZRGB>);
-    pcl::io::loadPCDFile(argv[1], *cloud_in);
-
-    // ** Process
-    o.PCL_Callback(cloud_in);
-
+    Object_Recognition_Node o(n);
     return 0;
 }
 
 
-Object_Recognition::Object_Recognition(const ros::NodeHandle& n)
-    : n_(n), rgb_transport_(n), depth_transport_(n), pcl_viewer_(new pcl::visualization::PCLVisualizer)
+Object_Recognition_Node::Object_Recognition_Node(const ros::NodeHandle& n)
+    : n_(n), rgb_transport_(n), depth_transport_(n), process_PCL_(false)
 {
     // ** Publishers
     speaker_pub_ = n_.advertise<std_msgs::String>("object_recognition/speaker", 1000);
@@ -122,10 +111,10 @@ Object_Recognition::Object_Recognition(const ros::NodeHandle& n)
 //    rgbd_sync_.reset(new RGBD_Sync(RGBD_Sync_Policy(QUEUE_SIZE), rgb_sub_, depth_sub_));
 //    rgbd_sync_->registerCallback(boost::bind(&Object_Recognition::RGBD_Callback, this, _1, _2));
 
-    pcl_sub_ = n_.subscribe("/camera/depth_registered/points", QUEUE_SIZE, &Object_Recognition::PCL_Callback, this);
+    pcl_sub_ = n_.subscribe("/camera/depth_registered/points", QUEUE_SIZE, &Object_Recognition_Node::PCL_Callback, this);
 }
 
-void Object_Recognition::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
+void Object_Recognition_Node::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
                                        const sensor_msgs::ImageConstPtr &depth_msg)
 {
     // ** Convert ROS messages to OpenCV images
@@ -141,78 +130,8 @@ void Object_Recognition::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg
     // ** Process image
 }
 
-void Object_Recognition::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)
+void Object_Recognition_Node::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)
 {
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr object (new pcl::PointCloud<pcl::PointXYZRGB>);
-
-    // ** Pre-processing: pass-through filter, voxel filter
-//    preprocessing(pcl_msg, object);
-
-    // ** Object segmentation using plane extraction
-    segmentation(pcl_msg, object);
-
-    // ** 3D Feature extraction (SIFT 3D, Harris 3D)
-
-    // ** 3D Feature description (FPFH, SHOT)
-
-    // ** Bag of Words analysis
-
-    // ** Publish to speaker node
-
-}
-
-void Object_Recognition::preprocessing(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in,
-                                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud_out)
-{
-    std::clock_t begin = clock();
-    pcl::VoxelGrid<pcl::PointXYZRGB> vg;
-    vg.setInputCloud (cloud_in);
-    vg.setLeafSize (CLOUD_RES, CLOUD_RES, CLOUD_RES);
-    vg.filter (*cloud_out);
-    std::clock_t end = clock();
-
-    ROS_INFO("Preprocessing [%.3f ms]. Before: %u points. After: %u points",
-             RAS_Utils::time_diff_ms(begin, end), cloud_in->size(), cloud_out->size());
-}
-
-void Object_Recognition::segmentation(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in,
-                                            pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud_out)
-{
-    std::clock_t begin = clock();
-
-    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
-
-    // Create the segmentation object
-    pcl::SACSegmentation<pcl::PointXYZRGB> seg;
-    // Optional
-    seg.setOptimizeCoefficients (true);
-    // Mandatory
-    seg.setModelType (pcl::SACMODEL_PLANE);
-    seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setMaxIterations (1000);
-    seg.setDistanceThreshold (0.01);
-
-    // Create the filtering object
-    pcl::ExtractIndices<pcl::PointXYZRGB> extract;
-
-    // Segment the largest planar component from the remaining cloud
-    seg.setInputCloud (cloud_in);
-    seg.segment (*inliers, *coefficients);
-    if (inliers->indices.size () == 0)
-    {
-        std::cout << "Could not estimate a planar model for the given dataset." << std::endl;
-    }
-
-    // Extract the object
-    extract.setInputCloud (cloud_in);
-    extract.setIndices (inliers);
-    extract.setNegative (true); //Extract the object, not the plane!
-    extract.filter (*cloud_out);
-    std::cout << "PointCloud representing the planar component: " << cloud_out->size() << " data points." << std::endl;
-    std::clock_t end = clock();
-
-    ROS_INFO("Segmentation [%.3f ms]", RAS_Utils::time_diff_ms(begin, end));
-    pcl_viewer_->addPointCloud(cloud_out);
-    pcl_viewer_->spin();
+    std::string object = obj_recognition.recognize(pcl_msg);
+    // ** Publish
 }

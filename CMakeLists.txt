@@ -83,7 +83,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES object_recognition
 #  CATKIN_DEPENDS ras_utils roscpp rospy std_msgs
 #  DEPENDS system_lib
@@ -97,6 +97,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -130,9 +131,15 @@ link_directories(${PCL_LIBRARY_DIRS})
 link_libraries(${PCL_LIBRARIES})
 
 # Sources
-file (GLOB_RECURSE SOURCES src/*.cpp)
+#file (GLOB_RECURSE SOURCES src/bag_of_words.cpp src/bow_model.cpp feature_extractor.cpp include/${PROJECT_NAME}/*.h)
+file (GLOB SOURCES src/*.cpp include/${PROJECT_NAME}/*.h include/${PROJECT_NAME}/*.hpp)
+list (REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_node.cpp
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training_node.cpp
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/test_object_recognition.cpp)
 ## Declare a cpp executable
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} src/object_recognition_node.cpp ${SOURCES})
+add_executable(vision_training src/vision_training_node.cpp ${SOURCES})
+add_executable(test_object_recognition src/test_object_recognition.cpp ${SOURCES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -140,7 +147,8 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-
+target_link_libraries(vision_training ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(test_object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #############
 ## Install ##
 #############

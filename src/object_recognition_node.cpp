@@ -1,4 +1,7 @@
 #include <iostream>
+#include <ctime>
+#include <ras_utils/ras_utils.h>
+#include <object_recognition/object_recognition.h>
 // ROS
 #include "ros/ros.h"
 #include <std_msgs/String.h>
@@ -13,7 +16,16 @@
 
 // PCL
 #include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/extract_indices.h>
 
 // OpenCV
 #include <opencv2/imgproc/imgproc.hpp>
@@ -21,7 +33,7 @@
 
 #define QUEUE_SIZE 10
 
-class Object_Recognition{
+class Object_Recognition_Node{
 
     typedef image_transport::ImageTransport ImageTransport;
     typedef image_transport::Publisher ImagePublisher;
@@ -34,7 +46,7 @@ class Object_Recognition{
     typedef message_filters::Synchronizer<RGBD_Sync_Policy> RGBD_Sync;
 
 public:
-    Object_Recognition(const ros::NodeHandle& n);
+    Object_Recognition_Node(const ros::NodeHandle& n);
 
 private:
     ros::NodeHandle n_;
@@ -45,11 +57,15 @@ private:
     image_transport::SubscriberFilter rgb_sub_;
     image_transport::SubscriberFilter depth_sub_;
 
-    ros::Publisher speaker_pub;
+    ros::Publisher speaker_pub_;
 
     boost::shared_ptr<RGBD_Sync> rgbd_sync_;
 
+    ros::Subscriber pcl_sub_;
 
+    bool process_PCL_;
+
+    Object_Recognition obj_recognition;
     /**
      * @brief Callback to process RGB and Depth image
      * @param rgb_msg
@@ -75,32 +91,30 @@ int main(int argc, char* argv[])
     ros::NodeHandle n;
 
     // ** Create object recognition object
-    Object_Recognition o(n);
-
-    // ** Spin
-    ros::spin();
+    Object_Recognition_Node o(n);
     return 0;
 }
 
 
-Object_Recognition::Object_Recognition(const ros::NodeHandle& n)
-    : n_(n), rgb_transport_(n), depth_transport_(n)
+Object_Recognition_Node::Object_Recognition_Node(const ros::NodeHandle& n)
+    : n_(n), rgb_transport_(n), depth_transport_(n), process_PCL_(false)
 {
     // ** Publishers
-    speaker_pub = n_.advertise<std_msgs::String>("object_recognition/speaker", 1000);
+    speaker_pub_ = n_.advertise<std_msgs::String>("object_recognition/speaker", 1000);
 
     // ** Subscribers
-    rgb_sub_.subscribe(rgb_transport_,
-                       "/camera/rgb/image_raw", QUEUE_SIZE);
-    depth_sub_.subscribe(depth_transport_,
-                       "/camera/depth/image", QUEUE_SIZE);
+//    rgb_sub_.subscribe(rgb_transport_,
+//                       "/camera/rgb/image_raw", QUEUE_SIZE);
+//    depth_sub_.subscribe(depth_transport_,
+//                       "/camera/depth/image", QUEUE_SIZE);
 
-    rgbd_sync_.reset(new RGBD_Sync(RGBD_Sync_Policy(QUEUE_SIZE), rgb_sub_, depth_sub_));
-    rgbd_sync_->registerCallback(boost::bind(&Object_Recognition::RGBD_Callback, this, _1, _2));
+//    rgbd_sync_.reset(new RGBD_Sync(RGBD_Sync_Policy(QUEUE_SIZE), rgb_sub_, depth_sub_));
+//    rgbd_sync_->registerCallback(boost::bind(&Object_Recognition::RGBD_Callback, this, _1, _2));
 
+    pcl_sub_ = n_.subscribe("/camera/depth_registered/points", QUEUE_SIZE, &Object_Recognition_Node::PCL_Callback, this);
 }
 
-void Object_Recognition::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
+void Object_Recognition_Node::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
                                        const sensor_msgs::ImageConstPtr &depth_msg)
 {
     // ** Convert ROS messages to OpenCV images
@@ -116,16 +130,8 @@ void Object_Recognition::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg
     // ** Process image
 }
 
-void Object_Recognition::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)
+void Object_Recognition_Node::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)
 {
-    // ** Object segmentation using plane extraction
-
-    // ** 3D Feature extraction (SIFT 3D, Harris 3D)
-
-    // ** 3D Feature description (FPFH, SHOT)
-
-    // ** Bag of Words analysis
-
-    // ** Publish to speaker node
-
+    std::string object = obj_recognition.recognize(pcl_msg);
+    // ** Publish
 }

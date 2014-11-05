@@ -2,7 +2,7 @@
 #include <string>
 #include <sstream>
 #include <dirent.h>
-#include <object_recognition/feature_extractor.h>
+#include <object_recognition/feature_extractor.hpp>
 
 // ROS
 #include "ros/ros.h"
@@ -239,7 +239,7 @@ void Vision_Training::process_model_folder(std::string path)
                 std::cout << "\t Saving into "<<desc_name << std::endl;
 
                 // ** Process file
-                Feature_Extractor fo;
+                Feature_Extractor<pcl::PFHRGBEstimation, pcl::PFHRGBSignature250> fo;
                 pcl::PointCloud<pcl::PFHRGBSignature250>::Ptr descriptors (new pcl::PointCloud<pcl::PFHRGBSignature250>);
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZRGB>);
 

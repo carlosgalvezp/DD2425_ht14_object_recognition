@@ -1,14 +1,78 @@
-#include <object_recognition/object_recognition.h>
+#ifndef OBJECT_RECOGNITION_H
+#define OBJECT_RECOGNITION_H
 
-Object_Recognition::Object_Recognition()
+#include <iostream>
+#include <ctime>
+#include <ras_utils/ras_utils.h>
+#include <object_recognition/feature_extractor.hpp>
+#include <object_recognition/object_model.hpp>
+#include <dirent.h>
+// ROS
+#include "ros/ros.h"
+#include <std_msgs/String.h>
+#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/PointCloud2.h>
+
+#include <image_transport/image_transport.h>
+#include <image_transport/subscriber_filter.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <cv_bridge/cv_bridge.h>
+
+// PCL
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/ModelCoefficients.h>
+#include <pcl/sample_consensus/method_types.h>
+#include <pcl/sample_consensus/model_types.h>
+#include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/search/kdtree.h>
+#include <pcl/registration/correspondence_rejection_sample_consensus.h>
+
+// OpenCV
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+const std::string models_rel_path_ = "/vision_data/"; // Path relative to /home/user
+
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+class Object_Recognition
+{
+public:
+    Object_Recognition();
+    std::string recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in);
+private:
+    Feature_Extractor<DescriptorExtractor, DescriptorType> feat_extractor;
+    std::vector<Object_Model<DescriptorType> > objects_model_;
+    std::vector<Object_Model<pcl::PointXYZRGB> > objects_keypoints_;
+
+    int getCorrespondences(const typename pcl::PointCloud<DescriptorType>::ConstPtr &test_descriptors,
+                           const typename pcl::PointCloud<DescriptorType>::ConstPtr &model_descriptors);
+    void one_way_correspondences(const typename pcl::PointCloud<DescriptorType>::ConstPtr &source,
+                                 const typename pcl::PointCloud<DescriptorType>::ConstPtr &target,
+                                 std::vector<int>& correspondences);
+    void load_models();
+    void load_object_model(const std::string &path, const std::string &model_name);
+};
+
+// ================================================================================
+// ================================================================================
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+Object_Recognition<DescriptorExtractor, DescriptorType>::Object_Recognition()
 {
     load_models();
 }
 
-std::string Object_Recognition::recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in)
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+std::string Object_Recognition<DescriptorExtractor, DescriptorType>::recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in)
 {
     std::clock_t begin = clock();
-    pcl::PointCloud<pcl::PFHRGBSignature250>::Ptr descriptors (new pcl::PointCloud<pcl::PFHRGBSignature250>);
+    typename pcl::PointCloud<DescriptorType>::Ptr descriptors (new pcl::PointCloud<DescriptorType>);
     // ** Extract local 3D feature descriptors
     feat_extractor.get_descriptors(cloud_in, descriptors);
 
@@ -32,8 +96,10 @@ std::string Object_Recognition::recognize(const pcl::PointCloud<pcl::PointXYZRGB
     return best_model;
 }
 
-int Object_Recognition::getCorrespondences(const pcl::PointCloud<pcl::PFHRGBSignature250>::ConstPtr &test_descriptors,
-                                           const pcl::PointCloud<pcl::PFHRGBSignature250>::ConstPtr &model_descriptors)
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+int Object_Recognition<DescriptorExtractor, DescriptorType>::getCorrespondences(
+            const typename pcl::PointCloud<DescriptorType>::ConstPtr &test_descriptors,
+            const typename pcl::PointCloud<DescriptorType>::ConstPtr &model_descriptors)
 {
 //    std::cout << "Finding correspondences..."<<std::endl;
     // ** 1-way correspondences
@@ -74,14 +140,16 @@ int Object_Recognition::getCorrespondences(const pcl::PointCloud<pcl::PFHRGBSign
     return correspondences_->size();
 }
 
-void Object_Recognition::one_way_correspondences(const pcl::PointCloud<pcl::PFHRGBSignature250>::ConstPtr &source,
-                             const pcl::PointCloud<pcl::PFHRGBSignature250>::ConstPtr &target,
-                             std::vector<int>& correspondences)
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+void Object_Recognition<DescriptorExtractor, DescriptorType>::one_way_correspondences(
+        const typename pcl::PointCloud<DescriptorType>::ConstPtr &source,
+        const typename pcl::PointCloud<DescriptorType>::ConstPtr &target,
+                                       std::vector<int>& correspondences)
 {
     correspondences.resize (source->size());
 
     // Use a KdTree to search for the nearest matches in feature space
-    pcl::search::KdTree<pcl::PFHRGBSignature250> descriptor_kdtree;
+    pcl::search::KdTree<DescriptorType> descriptor_kdtree;
     descriptor_kdtree.setInputCloud (target);
 
     // Find the index of the best match for each keypoint, and store it in "correspondences_out"
@@ -95,7 +163,8 @@ void Object_Recognition::one_way_correspondences(const pcl::PointCloud<pcl::PFHR
     }
 }
 
-void Object_Recognition::load_models()
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+void Object_Recognition<DescriptorExtractor, DescriptorType>::load_models()
 {
     std::cout << "Loading object models..."<<std::endl;
     // ** Read models directory and retrieve the PCD descriptors
@@ -124,8 +193,8 @@ void Object_Recognition::load_models()
     }
 }
 
-
-void Object_Recognition::load_object_model(const std::string &path, const std::string &model_name)
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+void Object_Recognition<DescriptorExtractor, DescriptorType>::load_object_model(const std::string &path, const std::string &model_name)
 {
     // ** Read models directory and retrieve the PCD descriptors
     std::cout << "Loading object model: "<< model_name << std::endl;
@@ -140,11 +209,11 @@ void Object_Recognition::load_object_model(const std::string &path, const std::s
             if(ent->d_type == DT_REG)
             {
                 std::string model_path = path + ent->d_name;
-                pcl::PointCloud<pcl::PFHRGBSignature250>::Ptr descriptors (new pcl::PointCloud<pcl::PFHRGBSignature250>);
+                typename pcl::PointCloud<DescriptorType>::Ptr descriptors (new pcl::PointCloud<DescriptorType>);
                 if(pcl::io::loadPCDFile(model_path, *descriptors) != 0)
                     ROS_ERROR("Error reading PCD file");
                 std::cout << "Pointcloud: "<<descriptors->size()<<std::endl;
-                Object_Model<pcl::PFHRGBSignature250> obj(model_name, descriptors);
+                Object_Model<DescriptorType> obj(model_name, descriptors);
                 objects_model_.push_back(obj);
             }
         }
@@ -154,3 +223,5 @@ void Object_Recognition::load_object_model(const std::string &path, const std::s
         std::cout <<"Can't read directory "<<path<<std::endl;
     }
 }
+
+#endif // OBJECT_RECOGNITION_H

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <ctime>
 #include <ras_utils/ras_utils.h>
-#include <object_recognition/object_recognition.h>
+#include <object_recognition/object_recognition.hpp>
 // ROS
 #include "ros/ros.h"
 #include <std_msgs/String.h>
@@ -33,6 +33,7 @@
 
 #define QUEUE_SIZE 10
 
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
 class Object_Recognition_Node{
 
     typedef image_transport::ImageTransport ImageTransport;
@@ -65,7 +66,7 @@ private:
 
     bool process_PCL_;
 
-    Object_Recognition obj_recognition;
+    Object_Recognition<DescriptorExtractor, DescriptorType> obj_recognition;
     /**
      * @brief Callback to process RGB and Depth image
      * @param rgb_msg
@@ -91,12 +92,13 @@ int main(int argc, char* argv[])
     ros::NodeHandle n;
 
     // ** Create object recognition object
-    Object_Recognition_Node o(n);
+    Object_Recognition_Node<pcl::PFHRGBEstimation,
+                            pcl::PFHRGBSignature250> o(n);
     return 0;
 }
 
-
-Object_Recognition_Node::Object_Recognition_Node(const ros::NodeHandle& n)
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+Object_Recognition_Node<DescriptorExtractor, DescriptorType>::Object_Recognition_Node(const ros::NodeHandle& n)
     : n_(n), rgb_transport_(n), depth_transport_(n), process_PCL_(false)
 {
     // ** Publishers
@@ -114,7 +116,8 @@ Object_Recognition_Node::Object_Recognition_Node(const ros::NodeHandle& n)
     pcl_sub_ = n_.subscribe("/camera/depth_registered/points", QUEUE_SIZE, &Object_Recognition_Node::PCL_Callback, this);
 }
 
-void Object_Recognition_Node::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+void Object_Recognition_Node<DescriptorExtractor, DescriptorType>::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
                                        const sensor_msgs::ImageConstPtr &depth_msg)
 {
     // ** Convert ROS messages to OpenCV images
@@ -130,7 +133,8 @@ void Object_Recognition_Node::RGBD_Callback(const sensor_msgs::ImageConstPtr &rg
     // ** Process image
 }
 
-void Object_Recognition_Node::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)
+template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
+void Object_Recognition_Node<DescriptorExtractor, DescriptorType>::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)
 {
     std::string object = obj_recognition.recognize(pcl_msg);
     // ** Publish

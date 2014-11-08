@@ -113,7 +113,7 @@ Object_Recognition_Node<DescriptorExtractor, DescriptorType>::Object_Recognition
 //    rgbd_sync_.reset(new RGBD_Sync(RGBD_Sync_Policy(QUEUE_SIZE), rgb_sub_, depth_sub_));
 //    rgbd_sync_->registerCallback(boost::bind(&Object_Recognition::RGBD_Callback, this, _1, _2));
 
-    pcl_sub_ = n_.subscribe("/camera/depth_registered/points", QUEUE_SIZE, &Object_Recognition_Node::PCL_Callback, this);
+//    pcl_sub_ = n_.subscros servicribe("/camera/depth_registered/points", QUEUE_SIZE, &Object_Recognition_Node::PCL_Callback, this);
 }
 
 template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
@@ -139,3 +139,4 @@ void Object_Recognition_Node<DescriptorExtractor, DescriptorType>::PCL_Callback(
     std::string object = obj_recognition.recognize(pcl_msg);
     // ** Publish
 }
+

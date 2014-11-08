@@ -139,7 +139,7 @@ void Feature_Extractor<DescriptorExtractor, DescriptorType>::preprocessing(
 //    viewer->addCoordinateSystem();
 //    viewer->spin();
     std::clock_t end = clock();
-    ROS_INFO("Preprocessing [%.3f ms]. Before: %u points. After: %u points",
+    ROS_INFO("Preprocessing [%.3f ms]. Before: %lu points. After: %lu points",
              RAS_Utils::time_diff_ms(begin, end), cloud_in->size(), cloud_out->size());
 }
 
@@ -202,7 +202,7 @@ void Feature_Extractor<DescriptorExtractor, DescriptorType>::keypoint_extraction
     vg.filter (*keypoints);
 
     std::clock_t end = clock();
-    ROS_INFO("Keypoints [%.3f ms]. Before: %u points. After: %u points",
+    ROS_INFO("Keypoints [%.3f ms]. Before: %lu points. After: %lu points",
              RAS_Utils::time_diff_ms(begin, end), cloud_in->size(), keypoints->size());
 }
 

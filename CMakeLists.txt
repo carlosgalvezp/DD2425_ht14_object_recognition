@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
+#set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 project(object_recognition)
 
 ## Find catkin macros and libraries
@@ -11,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   image_transport
   cv_bridge
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,11 +56,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+ add_service_files(
+   FILES
+   Recognition.srv
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -68,10 +69,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+   sensor_msgs
+ )
 
 ###################################
 ## catkin specific configuration ##
@@ -85,6 +87,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES object_recognition
+  CATKIN_DEPENDS message_runtime
 #  CATKIN_DEPENDS ras_utils roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
@@ -135,9 +138,10 @@ link_libraries(${PCL_LIBRARIES})
 file (GLOB SOURCES src/*.cpp include/${PROJECT_NAME}/*.h include/${PROJECT_NAME}/*.hpp)
 list (REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_node.cpp
                           ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training_node.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/test_object_recognition.cpp)
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/test_object_recognition.cpp
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_2d.cpp)
 ## Declare a cpp executable
-add_executable(${PROJECT_NAME} src/object_recognition_node.cpp ${SOURCES})
+add_executable(${PROJECT_NAME} src/object_recognition_2d.cpp ${SOURCES})
 add_executable(vision_training src/vision_training_node.cpp ${SOURCES})
 add_executable(test_object_recognition src/test_object_recognition.cpp ${SOURCES})
 

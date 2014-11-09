@@ -14,7 +14,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 // Services
-#include <object_recognition/Recognition.h>
+#include <ras_srv_msgs/Recognition.h>
 
 // PCL
 #include <pcl/point_types.h>
@@ -70,8 +70,8 @@ private:
     ros::ServiceServer service_;
     bool process_PCL_;
 
-    bool Recognition_Callback(object_recognition::Recognition::Request  &req,
-                              object_recognition::Recognition::Response &res);
+    bool Recognition_Callback(ras_srv_msgs::Recognition::Request  &req,
+                              ras_srv_msgs::Recognition::Response &res);
     std::string recognize(const cv::Mat &rgb_img, const cv::Mat &mask);
 
 };
@@ -104,8 +104,8 @@ Object_Recognition_2D_Node::Object_Recognition_2D_Node(const ros::NodeHandle& n)
 
 void nullDeleter(void*) {}
 
-bool Object_Recognition_2D_Node::Recognition_Callback(object_recognition::Recognition::Request  &req,
-                                                      object_recognition::Recognition::Response &res)
+bool Object_Recognition_2D_Node::Recognition_Callback(ras_srv_msgs::Recognition::Request  &req,
+                                                      ras_srv_msgs::Recognition::Response &res)
 {
     // ** Convert ROS messages to OpenCV images and scale
     boost::shared_ptr<sensor_msgs::Image> req_rgb_ptr(&req.rgb_img, nullDeleter);

@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   image_transport
   cv_bridge
-  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -56,10 +55,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
- add_service_files(
-   FILES
-   Recognition.srv
- )
+# add_service_files(
+#   FILES
+#   Recognition.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -69,11 +68,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES
-   std_msgs
-   sensor_msgs
- )
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+#   sensor_msgs
+# )
 
 ###################################
 ## catkin specific configuration ##
@@ -87,7 +86,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES object_recognition
-  CATKIN_DEPENDS message_runtime
+#  CATKIN_DEPENDS message_runtime
 #  CATKIN_DEPENDS ras_utils roscpp rospy std_msgs
 #  DEPENDS system_lib
 )

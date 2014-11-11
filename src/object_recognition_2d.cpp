@@ -89,9 +89,10 @@ bool Object_Recognition_2D_Node::Recognition_Callback(ras_srv_msgs::Recognition:
 
     // ** Publish to speaker node
     std::string str = ("I see " + object);
+    ROS_ERROR("%s",str.c_str());
     std_msgs::String msg;
     msg.data = str;
-    speaker_pub_.publish(msg);
+//    speaker_pub_.publish(msg);
     res.result = 1;
 
     return true;

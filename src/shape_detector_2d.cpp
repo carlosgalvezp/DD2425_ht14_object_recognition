@@ -82,14 +82,10 @@ bool Shape_Detector_2D::circle_detection(const cv::Mat &rgb_img)
 ///////////////////////////////////////////////////
 
     std::vector<cv::Vec3f> circles;
-    std::cout << "Houghtransforming, please wait"  <<std::endl;
 
      /// Apply the Hough Transform to find the circles
 
      cv::HoughCircles( grad, circles, CV_HOUGH_GRADIENT, ratio, grad.rows/8, edge_param, center_param, radius_min, radium_max );
-
-     std::cout << "Houghtransforming finished"  <<std::endl;
-     //waitKey(0);
 
 //     ///Draw the circles detected
 //     for( std::size_t i = 0; i < circles.size(); i++ )

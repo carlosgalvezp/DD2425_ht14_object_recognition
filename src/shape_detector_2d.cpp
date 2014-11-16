@@ -156,8 +156,8 @@ bool Shape_Detector_2D::square_detection(const cv::Mat &rgb_img)
         ////      PARAMETERS TO TUNE        //
         //////////////////////////////////////
 
-        int thresh = 600, N = 1;  //initial canny threshold to find lines, between 200-600 works best, N is iteration times with small change in threshold value
-        double cosinethreshold=0.3; //fight against not exact 90 degrees intersection, 0.1 means almost 90degree intersections.
+        int thresh = 800, N = 3;  //initial canny threshold to find lines, between 600-800 works best, N is iteration times with small change in threshold value
+        double cosinethreshold=0.6; //fight against not exact 90 degrees intersection, 0.1 means almost 90degree intersections.
 
         cv::Mat pyr, timg, gray0(image.size(), CV_8U), gray;
         // down-scale and upscale the image to filter out the noise
@@ -205,7 +205,7 @@ bool Shape_Detector_2D::square_detection(const cv::Mat &rgb_img)
                     // area may be positive or negative - in accordance with the
                     // contour orientation
 
-                    if( approx.size() == 4 && fabs(cv::contourArea(cv::Mat(approx))) > 1000 && cv::isContourConvex(cv::Mat(approx)) )
+                    if( approx.size() == 4 && fabs(cv::contourArea(cv::Mat(approx))) > 2500 && fabs(cv::contourArea(cv::Mat(approx))) < 4500 && cv::isContourConvex(cv::Mat(approx)) )
                     {
                         double maxCosine = 0;
                         for( int j = 2; j < 5; j++ )

@@ -15,10 +15,10 @@ bool Shape_Detector_2D::circle_detection(const cv::Mat &rgb_img)
   int delta = 0;
 
   //parameters in Hough transform for circle detection
-  int ratio = 3;          //invers ratio of resolution, the bigger value, the worse resolution, recommend 3
-  int edge_param = 300;   //threshhold for converting edged image to binary, recommend 300
-  int center_param = 200; //threshhold for detection of a circle, recommmend 200
-  int radius_min = 40;    //red ball radius betwwen 40-75
+  int ratio = 2;          //invers ratio of resolution, the bigger value, the worse resolution, recommend 3
+  int edge_param = 130;   //threshhold for converting edged image to binary, recommend 300
+  int center_param = 100; //threshhold for detection of a circle, recommmend 200
+  int radius_min = 30;    //red ball radius betwwen 40-75
   int radium_max = 75;    // 0,0 means no limit
 
 
@@ -71,25 +71,22 @@ bool Shape_Detector_2D::circle_detection(const cv::Mat &rgb_img)
   //waitKey(0);
 
 
-//  Mat binary;   int grad_low=150;  int grad_high=255;
-//  inRange(grad, grad_low, grad_high, binary);
-//  namedWindow("Win5", CV_WINDOW_AUTOSIZE);
-//  imshow("Win5", binary);
-//  waitKey(0);
+  cv::Mat binary;   int grad_low=130;  int grad_high=255;
+  cv::inRange(grad, grad_low, grad_high, binary);
+  cv::namedWindow("Win5", CV_WINDOW_AUTOSIZE);
+//  cv::imshow("Win5", binary);
+//  cv::waitKey(1);
 
 ///////////////////////////////////////////////////
 //      3) Hough transform the egde image        //
 ///////////////////////////////////////////////////
 
     std::vector<cv::Vec3f> circles;
-    std::cout << "Houghtransforming, please wait"  <<std::endl;
 
      /// Apply the Hough Transform to find the circles
 
-     cv::HoughCircles( grad, circles, CV_HOUGH_GRADIENT, ratio, grad.rows/8, edge_param, center_param, radius_min, radium_max );
-
-     std::cout << "Houghtransforming finished"  <<std::endl;
-     //waitKey(0);
+//     cv::HoughCircles( grad, circles, CV_HOUGH_GRADIENT, ratio, grad.rows/8, edge_param, center_param, radius_min, radium_max );
+     cv::HoughCircles(src_gray, circles, CV_HOUGH_GRADIENT, ratio, grad.rows/8, edge_param, center_param, radius_min, radium_max );
 
 //     ///Draw the circles detected
 //     for( std::size_t i = 0; i < circles.size(); i++ )
@@ -113,7 +110,6 @@ bool Shape_Detector_2D::circle_detection(const cv::Mat &rgb_img)
 //                  (t2.tv_usec - t1.tv_usec)/1000.0 <<" ms"<< std::endl;
 
 //     waitKey(0);
-
   return circles.size() > 0;
 }
 
@@ -160,8 +156,8 @@ bool Shape_Detector_2D::square_detection(const cv::Mat &rgb_img)
         ////      PARAMETERS TO TUNE        //
         //////////////////////////////////////
 
-        int thresh = 600, N = 1;  //initial canny threshold to find lines, between 200-600 works best, N is iteration times with small change in threshold value
-        double cosinethreshold=0.3; //fight against not exact 90 degrees intersection, 0.1 means almost 90degree intersections.
+        int thresh = 800, N = 3;  //initial canny threshold to find lines, between 600-800 works best, N is iteration times with small change in threshold value
+        double cosinethreshold=0.6; //fight against not exact 90 degrees intersection, 0.1 means almost 90degree intersections.
 
         cv::Mat pyr, timg, gray0(image.size(), CV_8U), gray;
         // down-scale and upscale the image to filter out the noise
@@ -209,7 +205,7 @@ bool Shape_Detector_2D::square_detection(const cv::Mat &rgb_img)
                     // area may be positive or negative - in accordance with the
                     // contour orientation
 
-                    if( approx.size() == 4 && fabs(cv::contourArea(cv::Mat(approx))) > 1000 && cv::isContourConvex(cv::Mat(approx)) )
+                    if( approx.size() == 4 && fabs(cv::contourArea(cv::Mat(approx))) > 2500 && fabs(cv::contourArea(cv::Mat(approx))) < 4500 && cv::isContourConvex(cv::Mat(approx)) )
                     {
                         double maxCosine = 0;
                         for( int j = 2; j < 5; j++ )

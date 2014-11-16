@@ -137,12 +137,17 @@ link_libraries(${PCL_LIBRARIES})
 file (GLOB SOURCES src/*.cpp include/${PROJECT_NAME}/*.h include/${PROJECT_NAME}/*.hpp)
 list (REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_node.cpp
                           ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training_node.cpp
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training2d.cpp
                           ${CMAKE_CURRENT_SOURCE_DIR}/src/test_object_recognition.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_2d.cpp)
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_2d.cpp
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/keyboard_listener.cpp)
+
 ## Declare a cpp executable
 add_executable(${PROJECT_NAME} src/object_recognition_2d.cpp ${SOURCES})
 add_executable(vision_training src/vision_training_node.cpp ${SOURCES})
+add_executable(vision_training2d src/vision_training2d.cpp ${SOURCES})
 add_executable(test_object_recognition src/test_object_recognition.cpp ${SOURCES})
+add_executable(keyboard_listener src/keyboard_listener.cpp ${SOURCES})
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -152,6 +157,9 @@ add_executable(test_object_recognition src/test_object_recognition.cpp ${SOURCES
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(vision_training ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(test_object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(vision_training2d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(keyboard_listener ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
 #############
 ## Install ##
 #############

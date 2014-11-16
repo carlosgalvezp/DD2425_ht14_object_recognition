@@ -115,14 +115,14 @@ std::string Object_Recognition_2D_Node::recognize(const cv::Mat &rgb_img, const 
             }
             else
             {
-                if(shape_detector_.square_detection(rgb_img))
-                {
+//                if(shape_detector_.square_detection(rgb_img))
+//                {
                     result = "a red cube";
-                }
-                else
-                {
-                    result = "Patric";
-                }
+//                }
+//                else
+//                {
+//                    result = "Patric";
+//                }
             }
 
             break;

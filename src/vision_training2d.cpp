@@ -2,7 +2,6 @@
 #include <string>
 #include <sstream>
 #include <dirent.h>
-#include <object_recognition/feature_extractor.hpp>
 #include <termios.h>
 #include <sstream>
 // ROS

@@ -2,8 +2,10 @@
 #include <string>
 #include <sstream>
 #include <dirent.h>
-#include <object_recognition/feature_extractor.hpp>
-
+#include <object_recognition/feature_extractor_3d.hpp>
+#include <object_recognition/object_extractor_3d.h>
+#include <ras_utils/types.h>
+#include <boost/filesystem.hpp>
 // ROS
 #include "ros/ros.h"
 #include <std_msgs/String.h>
@@ -21,7 +23,6 @@
 #include <pcl/point_types_conversion.h>
 #include <pcl/point_cloud.h>
 #include <pcl_ros/point_cloud.h>
-#include <pcl/features/pfhrgb.h>
 #include <pcl/io/pcd_io.h>
 
 // OpenCV
@@ -32,51 +33,26 @@
 #define PUBLISH_RATE 1.0/5.0  //Save data every 5 seconds
 class Vision_Training{
 
-    typedef image_transport::ImageTransport ImageTransport;
-    typedef image_transport::Publisher ImagePublisher;
-    typedef image_transport::SubscriberFilter ImageSubFilter;
-
-    typedef message_filters::sync_policies::
-        ApproximateTime<sensor_msgs::Image,
-                        sensor_msgs::Image> RGBD_Sync_Policy;
-
-    typedef message_filters::Synchronizer<RGBD_Sync_Policy> RGBD_Sync;
 
 public:
     Vision_Training(const ros::NodeHandle& n);
     /**
      * @brief Save data at a given frequency
      */
-    void record_data(std::string path, std::string model_name);
+    void record_data(std::string model_name);
 
     /**
      * @brief Read the PCD data, computes the feature model, and saves it into .txt file
      */
-    void compute_model(std::string path);
+    void compute_models();
 
 private:
     ros::NodeHandle n_;
-
-    image_transport::ImageTransport rgb_transport_;
-    image_transport::ImageTransport depth_transport_;
-
-    image_transport::SubscriberFilter rgb_sub_;
-    image_transport::SubscriberFilter depth_sub_;
-
-    boost::shared_ptr<RGBD_Sync> rgbd_sync_;
-
     ros::Subscriber pcl_sub_;
-
-    cv::Mat rgb_img_, depth_img_;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
 
-    /**
-     * @brief Callback to process RGB and Depth image
-     * @param rgb_msg
-     * @param depth_msg
-     */
-    void RGBD_Callback(const sensor_msgs::ImageConstPtr& rgb_msg,
-                       const sensor_msgs::ImageConstPtr& depth_msg);
+    Object_Extractor_3D object_extractor_;
+    Feature_Extractor_3D<RAS_Utils::DescriptorExtractor, RAS_Utils::DescriptorType> feature_extractor_;
 
     /**
      * @brief Callback to process registered point cloud
@@ -114,21 +90,21 @@ int main(int argc, char* argv[])
     switch (option)
     {
         case 1:
-            if (argc < 4)
+            if (argc < 3)
             {
-                ROS_ERROR("Usage: 'rosrun vision_training 1 <path-to-saved-files> <model_name>");
+                ROS_ERROR("Usage: 'rosrun vision_training 1 <model_name>");
                 return -1;
             }
-            o.record_data(argv[2], argv[3]);
+            o.record_data(argv[2]);
         break;
 
         case 2:
-            if (argc < 3)
+            if (argc < 2)
             {
-                ROS_ERROR("Usage: rosrun vision_training 2 <path-to-models>");
+                ROS_ERROR("Usage: rosrun vision_training 2");
                 return -1;
             }
-            o.compute_model(argv[2]);
+            o.compute_models();
         break;
     }
 
@@ -137,30 +113,29 @@ int main(int argc, char* argv[])
 
 
 Vision_Training::Vision_Training(const ros::NodeHandle& n)
-    : n_(n), rgb_transport_(n), depth_transport_(n)
+    : n_(n)
 {
     // ** Subscribers
     // Point Cloud
     pcl_sub_ = n_.subscribe<pcl::PointCloud<pcl::PointXYZRGB> >
             ("/camera/depth_registered/points", QUEUE_SIZE, &Vision_Training::PCL_Callback,this);
-
-    //RGB and Depth images
-    rgb_sub_.subscribe(rgb_transport_,
-                       "/camera/rgb/image_raw", QUEUE_SIZE);
-    depth_sub_.subscribe(depth_transport_,
-                       "/camera/depth/image", QUEUE_SIZE);
-
-    rgbd_sync_.reset(new RGBD_Sync(RGBD_Sync_Policy(QUEUE_SIZE), rgb_sub_, depth_sub_));
-    rgbd_sync_->registerCallback(boost::bind(&Vision_Training::RGBD_Callback, this, _1, _2));
-
 }
 
-void Vision_Training::record_data(std::string path, std::string model_name)
+void Vision_Training::record_data(std::string model_name)
 {
     ROS_INFO("======= RECORDING DATA =======");
     // ** Publish data
     ros::Rate rate(PUBLISH_RATE);
     int n_item = 1;
+    std::string path = RAS_Names::models_3D_path + model_name+"/";
+    // Create folder if it does not exist
+    boost::filesystem::create_directory(path);
+
+    std::string raw_folder = path + "raw/";
+    // Empty the data folder
+    boost::filesystem::remove_all(raw_folder); // This also removes the /raw/ folder
+    boost::filesystem::create_directory(raw_folder); // Re-create it
+
     while(ros::ok())
     {
         ROS_INFO("Reading data...");
@@ -171,15 +146,10 @@ void Vision_Training::record_data(std::string path, std::string model_name)
         // PCD
         if (cloud_ != 0)
         {
-            std::stringstream ss, ss2, ss3;
-            ss << path<<model_name<<"/raw/"<<model_name<<"_"<<n_item<<".pcd";
+            std::stringstream ss;
+            // Create directory if it does not exist
+            ss << raw_folder <<model_name<<"_"<<n_item<<".pcd";
             pcl::io::savePCDFile(ss.str(), *cloud_);
-
-            // Images
-            ss2 << path<<model_name<<"/raw/" <<model_name<<"_RGB_"<<n_item<<".png";
-            ss3 << path<<model_name<<"/raw/" << model_name<<"_D_"<<n_item<<".png";
-            cv::imwrite(ss2.str(), rgb_img_);
-            cv::imwrite(ss3.str(), depth_img_);
 
             ++n_item;
         }
@@ -189,11 +159,12 @@ void Vision_Training::record_data(std::string path, std::string model_name)
     }
 }
 
-void Vision_Training::compute_model(std::string path)
+void Vision_Training::compute_models()
 {
     ROS_INFO("======= COMPUTING MODEL =======");
     DIR *dir;
     struct dirent *ent;
+    std::string path = RAS_Names::models_3D_path;
     const char* path_c = path.c_str();
     // ** Open base directory, which contains a folder for every model
     if((dir = opendir(path_c)) != NULL)
@@ -219,9 +190,15 @@ void Vision_Training::compute_model(std::string path)
 
 void Vision_Training::process_model_folder(std::string path)
 {
+    // Empty descriptors folder
+    std::string descriptors_folder = path + "/descriptors/";
+    boost::filesystem::remove_all(descriptors_folder); // This also removes the /raw/ folder
+    boost::filesystem::create_directory(descriptors_folder); // Re-create it
+
     DIR *dir;
     struct dirent *ent;
     const char* path_c = (path+"/raw/").c_str();
+
     // ** Open directory, which contains .pcd files of objects
     if((dir = opendir(path_c)) != NULL)
     {
@@ -234,42 +211,33 @@ void Vision_Training::process_model_folder(std::string path)
             {
                 std::string cloud_path = path + "/raw/" + f_name;
                 std::string f_name_no_ext = f_name.substr(0, f_name.length()-4);
-                std::string desc_name = path + "/descriptors/"+f_name_no_ext + "_desc.pcd";
+                std::string desc_name = descriptors_folder+f_name_no_ext + "_desc.pcd";
 
-                std::cout << "\t -"<< cloud_path<<std::endl;
                 std::cout << "\t Saving into "<<desc_name << std::endl;
 
                 // ** Process file
-                Feature_Extractor<pcl::PFHRGBEstimation, pcl::PFHRGBSignature250> fo;
-                pcl::PointCloud<pcl::PFHRGBSignature250>::Ptr descriptors (new pcl::PointCloud<pcl::PFHRGBSignature250>);
+                pcl::PointCloud<RAS_Utils::DescriptorType>::Ptr descriptors (new pcl::PointCloud<RAS_Utils::DescriptorType>);
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_in(new pcl::PointCloud<pcl::PointXYZRGB>);
+                pcl::PointCloud<pcl::PointXYZRGB>::Ptr object(new pcl::PointCloud<pcl::PointXYZRGB>);
 
+                // Load .pcd file
                 pcl::io::loadPCDFile(cloud_path, *cloud_in);
-                fo.get_descriptors(cloud_in, descriptors);
+
+                // Extract object
+                object_extractor_.extract_object(cloud_in, object);
+
+                // Extract descriptors
+                feature_extractor_.get_descriptors(object, descriptors);
+
+                // Save descriptors
                 pcl::io::savePCDFile(desc_name, *descriptors);
             }
         }
-
     }
     else
     {
-        std::cout <<"Can't read directory "<<path<<std::endl;
+        std::cout <<"Can't read directory "<<path_c<<std::endl;
     }
-}
-
-void Vision_Training::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
-                                    const sensor_msgs::ImageConstPtr &depth_msg)
-{
-    // ** Convert ROS messages to OpenCV images
-    cv_bridge::CvImageConstPtr rgb_ptr   = cv_bridge::toCvShare(rgb_msg);
-    cv_bridge::CvImageConstPtr depth_ptr = cv_bridge::toCvShare(depth_msg);
-
-    const cv::Mat& rgb_img   = rgb_ptr->image;
-    const cv::Mat& depth_img = depth_ptr->image;
-
-    // ** Store image
-    rgb_img_ = rgb_img;
-    depth_img_ = depth_img;
 }
 
 void Vision_Training::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)

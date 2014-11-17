@@ -1,55 +1,24 @@
-#ifndef OBJECT_RECOGNITION_H
-#define OBJECT_RECOGNITION_H
+#ifndef FEATURE_MATCHING_3D_H
+#define FEATURE_MATCHING_3D_H
 
-#include <iostream>
-#include <ctime>
+#include <object_recognition/object_model_3d.hpp>
 #include <ras_utils/ras_utils.h>
-#include <object_recognition/feature_extractor.hpp>
-#include <object_recognition/object_model.hpp>
 #include <dirent.h>
-// ROS
-#include "ros/ros.h"
-#include <std_msgs/String.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/PointCloud2.h>
-
-#include <image_transport/image_transport.h>
-#include <image_transport/subscriber_filter.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
-#include <cv_bridge/cv_bridge.h>
-
 // PCL
-#include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
-#include <pcl_ros/point_cloud.h>
-#include <pcl/visualization/pcl_visualizer.h>
+#include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/ModelCoefficients.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/filters/extract_indices.h>
-#include <pcl/search/kdtree.h>
-#include <pcl/registration/correspondence_rejection_sample_consensus.h>
 
-// OpenCV
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
 
-const std::string models_rel_path_ = "/vision_data/"; // Path relative to /home/user
-
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-class Object_Recognition
+template<typename DescriptorExtractor, typename DescriptorType>
+class Feature_Matching_3D
 {
 public:
-    Object_Recognition();
-    std::string recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in);
+    Feature_Matching_3D();
+    std::string match(const typename pcl::PointCloud<DescriptorType>::ConstPtr &object_descriptors);
+
 private:
-    Feature_Extractor<DescriptorExtractor, DescriptorType> feat_extractor;
     std::vector<Object_Model<DescriptorType> > objects_model_;
-    std::vector<Object_Model<pcl::PointXYZRGB> > objects_keypoints_;
 
     int getCorrespondences(const typename pcl::PointCloud<DescriptorType>::ConstPtr &test_descriptors,
                            const typename pcl::PointCloud<DescriptorType>::ConstPtr &model_descriptors);
@@ -60,22 +29,18 @@ private:
     void load_object_model(const std::string &path, const std::string &model_name);
 };
 
-// ================================================================================
-// ================================================================================
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-Object_Recognition<DescriptorExtractor, DescriptorType>::Object_Recognition()
+
+// =============================================================================
+// =============================================================================
+template<typename DescriptorExtractor, typename DescriptorType>
+Feature_Matching_3D<DescriptorExtractor, DescriptorType>::Feature_Matching_3D()
 {
     load_models();
 }
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-std::string Object_Recognition<DescriptorExtractor, DescriptorType>::recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in)
+template<typename DescriptorExtractor, typename DescriptorType>
+std::string Feature_Matching_3D<DescriptorExtractor, DescriptorType>::match(const typename pcl::PointCloud<DescriptorType>::ConstPtr &descriptors)
 {
-    std::clock_t begin = clock();
-    typename pcl::PointCloud<DescriptorType>::Ptr descriptors (new pcl::PointCloud<DescriptorType>);
-    // ** Extract local 3D feature descriptors
-    feat_extractor.get_descriptors(cloud_in, descriptors);
-
     // ** Matching with model
     int max_correspondences = 0;
     std::string best_model;
@@ -83,21 +48,21 @@ std::string Object_Recognition<DescriptorExtractor, DescriptorType>::recognize(c
     for(unsigned int i = 0; i < objects_model_.size(); ++i)
     {
         int n_correspondences = getCorrespondences(descriptors, objects_model_[i].descriptors_);
-//        std::cout << "Model "<<objects_model_[i].name_ <<": "<<n_correspondences << " correspondences"<<std::endl;
+        std::cout << "Model "<<objects_model_[i].name_ <<": "<<n_correspondences << " correspondences"<<std::endl;
         if(n_correspondences > max_correspondences)
         {
             max_correspondences = n_correspondences;
             best_model = objects_model_[i].name_;
         }
     }
-    double t = RAS_Utils::time_diff_ms(begin, clock());
-    std::cout << "Object recognition: "<< t << " ms." << std::endl;
+    std::cout << "Matching: "<< max_correspondences << " correspondences." << std::endl;
     // ** Output result
     return best_model;
 }
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-int Object_Recognition<DescriptorExtractor, DescriptorType>::getCorrespondences(
+
+template<typename DescriptorExtractor, typename DescriptorType>
+int Feature_Matching_3D<DescriptorExtractor, DescriptorType>::getCorrespondences(
             const typename pcl::PointCloud<DescriptorType>::ConstPtr &test_descriptors,
             const typename pcl::PointCloud<DescriptorType>::ConstPtr &model_descriptors)
 {
@@ -140,8 +105,8 @@ int Object_Recognition<DescriptorExtractor, DescriptorType>::getCorrespondences(
     return correspondences_->size();
 }
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-void Object_Recognition<DescriptorExtractor, DescriptorType>::one_way_correspondences(
+template<typename DescriptorExtractor, typename DescriptorType>
+void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::one_way_correspondences(
         const typename pcl::PointCloud<DescriptorType>::ConstPtr &source,
         const typename pcl::PointCloud<DescriptorType>::ConstPtr &target,
                                        std::vector<int>& correspondences)
@@ -163,14 +128,14 @@ void Object_Recognition<DescriptorExtractor, DescriptorType>::one_way_correspond
     }
 }
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-void Object_Recognition<DescriptorExtractor, DescriptorType>::load_models()
+template<typename DescriptorExtractor, typename DescriptorType>
+void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::load_models()
 {
     std::cout << "Loading object models..."<<std::endl;
     // ** Read models directory and retrieve the PCD descriptors
     DIR *dir;
     struct dirent *ent;
-    std::string models_path = std::string(getenv("HOME")) + models_rel_path_;
+    std::string models_path = RAS_Names::models_3D_path;
     std::cout << "Models path: " << models_path << std::endl;
 
     if((dir = opendir(models_path.c_str())) != NULL)
@@ -193,8 +158,8 @@ void Object_Recognition<DescriptorExtractor, DescriptorType>::load_models()
     }
 }
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-void Object_Recognition<DescriptorExtractor, DescriptorType>::load_object_model(const std::string &path, const std::string &model_name)
+template<typename DescriptorExtractor, typename DescriptorType>
+void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::load_object_model(const std::string &path, const std::string &model_name)
 {
     // ** Read models directory and retrieve the PCD descriptors
     std::cout << "Loading object model: "<< model_name << std::endl;
@@ -224,4 +189,4 @@ void Object_Recognition<DescriptorExtractor, DescriptorType>::load_object_model(
     }
 }
 
-#endif // OBJECT_RECOGNITION_H
+#endif // FEATURE_MATCHING_3D_H

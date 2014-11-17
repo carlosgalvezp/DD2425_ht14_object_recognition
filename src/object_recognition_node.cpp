@@ -1,7 +1,7 @@
 #include <iostream>
 #include <ctime>
 #include <ras_utils/ras_utils.h>
-#include <object_recognition/object_recognition.hpp>
+#include <object_recognition/object_recognition_3d.h>
 // ROS
 #include "ros/ros.h"
 #include <std_msgs/String.h>
@@ -18,22 +18,12 @@
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl_ros/point_cloud.h>
-#include <pcl/visualization/pcl_visualizer.h>
-#include <pcl/io/pcd_io.h>
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/ModelCoefficients.h>
-#include <pcl/sample_consensus/method_types.h>
-#include <pcl/sample_consensus/model_types.h>
-#include <pcl/segmentation/sac_segmentation.h>
-#include <pcl/filters/extract_indices.h>
-
 // OpenCV
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#define QUEUE_SIZE 10
+#define QUEUE_SIZE 2
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
 class Object_Recognition_Node{
 
     typedef image_transport::ImageTransport ImageTransport;
@@ -66,7 +56,7 @@ private:
 
     bool process_PCL_;
 
-    Object_Recognition<DescriptorExtractor, DescriptorType> obj_recognition;
+    Object_Recognition_3D obj_recognition;
     /**
      * @brief Callback to process RGB and Depth image
      * @param rgb_msg
@@ -92,17 +82,16 @@ int main(int argc, char* argv[])
     ros::NodeHandle n;
 
     // ** Create object recognition object
-    Object_Recognition_Node<pcl::PFHRGBEstimation,
-                            pcl::PFHRGBSignature250> o(n);
+    Object_Recognition_Node o(n);
+    ros::spin();
     return 0;
 }
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-Object_Recognition_Node<DescriptorExtractor, DescriptorType>::Object_Recognition_Node(const ros::NodeHandle& n)
+Object_Recognition_Node::Object_Recognition_Node(const ros::NodeHandle& n)
     : n_(n), rgb_transport_(n), depth_transport_(n), process_PCL_(false)
 {
     // ** Publishers
-    speaker_pub_ = n_.advertise<std_msgs::String>("object_recognition/speaker", 1000);
+//    speaker_pub_ = n_.advertise<std_msgs::String>("object_recognition/speaker", 1000);
 
     // ** Subscribers
 //    rgb_sub_.subscribe(rgb_transport_,
@@ -113,11 +102,10 @@ Object_Recognition_Node<DescriptorExtractor, DescriptorType>::Object_Recognition
 //    rgbd_sync_.reset(new RGBD_Sync(RGBD_Sync_Policy(QUEUE_SIZE), rgb_sub_, depth_sub_));
 //    rgbd_sync_->registerCallback(boost::bind(&Object_Recognition::RGBD_Callback, this, _1, _2));
 
-//    pcl_sub_ = n_.subscros servicribe("/camera/depth_registered/points", QUEUE_SIZE, &Object_Recognition_Node::PCL_Callback, this);
+    pcl_sub_ = n_.subscribe("/camera/depth_registered/points", QUEUE_SIZE, &Object_Recognition_Node::PCL_Callback, this);
 }
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-void Object_Recognition_Node<DescriptorExtractor, DescriptorType>::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
+void Object_Recognition_Node::RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
                                        const sensor_msgs::ImageConstPtr &depth_msg)
 {
     // ** Convert ROS messages to OpenCV images
@@ -133,10 +121,15 @@ void Object_Recognition_Node<DescriptorExtractor, DescriptorType>::RGBD_Callback
     // ** Process image
 }
 
-template<template<typename, typename, typename> class DescriptorExtractor, typename DescriptorType>
-void Object_Recognition_Node<DescriptorExtractor, DescriptorType>::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)
+void Object_Recognition_Node::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &pcl_msg)
 {
-    std::string object = obj_recognition.recognize(pcl_msg);
-    // ** Publish
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
+    pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(pcl_msg);
+    viewer->addPointCloud<pcl::PointXYZRGB> (pcl_msg, rgb, "sample cloud");
+    viewer->spinOnce();
+
+    std::string result = obj_recognition.recognize(pcl_msg);
+    ROS_INFO("3D object recognition: %s", result.c_str());
 }
+
 

@@ -136,7 +136,7 @@ link_libraries(${PCL_LIBRARIES})
 #file (GLOB_RECURSE SOURCES src/bag_of_words.cpp src/bow_model.cpp feature_extractor.cpp include/${PROJECT_NAME}/*.h)
 file (GLOB SOURCES src/*.cpp include/${PROJECT_NAME}/*.h include/${PROJECT_NAME}/*.hpp)
 list (REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_node.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training_node.cpp
+                          ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training_3d_node.cpp
                           ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training2d.cpp
                           ${CMAKE_CURRENT_SOURCE_DIR}/src/test_object_recognition.cpp
                           ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_2d.cpp
@@ -144,7 +144,8 @@ list (REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_nod
 
 ## Declare a cpp executable
 add_executable(${PROJECT_NAME} src/object_recognition_2d.cpp ${SOURCES})
-add_executable(vision_training src/vision_training_node.cpp ${SOURCES})
+add_executable(object_recognition_3d src/object_recognition_node.cpp ${SOURCES})
+add_executable(vision_training_3d src/vision_training_3d_node.cpp ${SOURCES})
 add_executable(vision_training2d src/vision_training2d.cpp ${SOURCES})
 add_executable(test_object_recognition src/test_object_recognition.cpp ${SOURCES})
 add_executable(keyboard_listener src/keyboard_listener.cpp ${SOURCES})
@@ -155,7 +156,8 @@ add_executable(keyboard_listener src/keyboard_listener.cpp ${SOURCES})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(vision_training ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(object_recognition_3d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(vision_training_3d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(test_object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(vision_training2d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(keyboard_listener ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

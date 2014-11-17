@@ -1,12 +1,11 @@
-#ifndef OBJECT_MODEL_H
-#define OBJECT_MODEL_H
+#ifndef OBJECT_MODEL_3D_H
+#define OBJECT_MODEL_3D_H
 #include <vector>
 #include <string>
 #include <iostream>
 
 // PCL
 #include <pcl/point_cloud.h>
-#include <pcl_ros/point_cloud.h>
 
 template <typename Descriptor_T>
 struct Object_Model

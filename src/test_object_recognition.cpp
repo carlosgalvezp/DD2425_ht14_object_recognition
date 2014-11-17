@@ -1,5 +1,5 @@
 #include <iostream>
-#include <object_recognition/object_recognition.hpp>
+#include <object_recognition/object_recognition_3d.h>
 
 // PCL
 #include <pcl/point_cloud.h>
@@ -16,8 +16,7 @@ int main(int argc, char* argv[])
     }
 
     // ** Create object recognition object
-    Object_Recognition<pcl::PFHRGBEstimation, pcl::PFHRGBSignature250>
-                       obj_recognition;
+    Object_Recognition_3D obj_recognition;
 
     // ** Load test point cloud
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGB>);

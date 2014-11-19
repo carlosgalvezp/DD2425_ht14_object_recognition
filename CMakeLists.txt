@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-#set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 project(object_recognition)
 
 ## Find catkin macros and libraries
@@ -85,7 +85,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES object_recognition
+  LIBRARIES object_recognition
 #  CATKIN_DEPENDS message_runtime
 #  CATKIN_DEPENDS ras_utils roscpp rospy std_msgs
 #  DEPENDS system_lib
@@ -133,34 +133,40 @@ link_directories(${PCL_LIBRARY_DIRS})
 link_libraries(${PCL_LIBRARIES})
 
 # Sources
-#file (GLOB_RECURSE SOURCES src/bag_of_words.cpp src/bow_model.cpp feature_extractor.cpp include/${PROJECT_NAME}/*.h)
-file (GLOB SOURCES src/*.cpp include/${PROJECT_NAME}/*.h include/${PROJECT_NAME}/*.hpp)
-list (REMOVE_ITEM SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_node.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training_3d_node.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/vision_training2d.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/test_object_recognition.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/object_recognition_2d.cpp
-                          ${CMAKE_CURRENT_SOURCE_DIR}/src/keyboard_listener.cpp)
+file (GLOB SOURCES src/*.cpp)
+file (GLOB HEADERS include/${PROJECT_NAME}/*.h include/${PROJECT_NAME}/*.hpp)
+
+# Declare library
+add_library(object_recognition ${SOURCES} ${HEADERS})
+target_link_libraries(object_recognition ${roscpp_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
 
 ## Declare a cpp executable
-add_executable(${PROJECT_NAME} src/object_recognition_2d.cpp ${SOURCES})
-add_executable(object_recognition_3d src/object_recognition_node.cpp ${SOURCES})
-add_executable(vision_training_3d src/vision_training_3d_node.cpp ${SOURCES})
-add_executable(vision_training2d src/vision_training2d.cpp ${SOURCES})
-add_executable(test_object_recognition src/test_object_recognition.cpp ${SOURCES})
-add_executable(keyboard_listener src/keyboard_listener.cpp ${SOURCES})
+add_executable(test_color_bayes src/apps/test_color_bayes.cpp)
+add_executable(object_recognition_2d src/apps/object_recognition_2d.cpp)
+add_executable(object_recognition_node src/apps/object_recognition_node.cpp)
+add_executable(test_object_recognition src/apps/test_object_recognition.cpp)
+add_executable(train_color_models src/apps/train_color_models.cpp)
+add_executable(vision_training_2d_node src/apps/vision_training_2d_node.cpp)
+add_executable(vision_training_3d_node src/apps/vision_training_3d_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(object_detection_node object_detection_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(object_recognition_3d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(vision_training_3d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(test_object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(vision_training2d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
-target_link_libraries(keyboard_listener ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(test_color_bayes object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(object_recognition_2d object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(object_recognition_node object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(test_object_recognition object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(train_color_models object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(vision_training_2d_node object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(vision_training_3d_node object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+
+#target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#target_link_libraries(object_recognition_3d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#target_link_libraries(vision_training_3d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#target_link_libraries(test_object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+#target_link_libraries(vision_training2d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #############
 ## Install ##

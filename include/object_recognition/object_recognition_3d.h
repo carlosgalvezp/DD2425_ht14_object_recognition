@@ -20,7 +20,7 @@ class Object_Recognition_3D
 {
 public:
     Object_Recognition_3D();
-    std::string recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in);
+    int recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in);
 
 private:
     Object_Extractor_3D object_extractor;

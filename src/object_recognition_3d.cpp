@@ -5,7 +5,7 @@ Object_Recognition_3D::Object_Recognition_3D()
 
 }
 
-std::string Object_Recognition_3D::recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in)
+int Object_Recognition_3D::recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in)
 {
     // ** Segment the object, removing planes
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -19,5 +19,9 @@ std::string Object_Recognition_3D::recognize(const pcl::PointCloud<pcl::PointXYZ
     std::string result = feature_matching.match(descriptors);
 
     // ** Output result
-    return result;
+    if(result == "cube")
+        return 0;
+    else if (result == "sphere")
+        return 1;
+    return -1;
 }

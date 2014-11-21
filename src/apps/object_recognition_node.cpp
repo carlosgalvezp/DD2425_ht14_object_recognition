@@ -128,8 +128,8 @@ void Object_Recognition_Node::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRG
     viewer->addPointCloud<pcl::PointXYZRGB> (pcl_msg, rgb, "sample cloud");
     viewer->spinOnce();
 
-    int result = obj_recognition.recognize(pcl_msg);
-    ROS_INFO("3D object recognition: %d", result);
+//    int result = obj_recognition.recognize(pcl_msg);
+//    ROS_INFO("3D object recognition: %d", result);
 }
 
 

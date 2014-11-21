@@ -9,6 +9,11 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+// PCL
+#include <pcl/common/transforms.h>
+
+// Eigen
+#include <Eigen/Core>
 /**
  * @brief Combines 2D and 3D object recognition to achieve the final classifier
  */
@@ -18,12 +23,12 @@ class Object_Recognition
 public:
     Object_Recognition();
 
-    std::string classify(const cv::Mat &rgb_img,
-                         const cv::Mat &depth_img,
-                         const cv::Mat &mask_img);
+    std::string classify(const cv::Mat &hsv_img, const cv::Mat &depth_img, const cv::Mat &mask_img);
 private:
     Color_Bayes_Classifier color_classifier_;
     Object_Recognition_3D classifier3D_;
+
+    bool is_concave(const cv::Mat &depth_img, const cv::Mat &mask_img);
 };
 
 #endif // OBJECT_RECOGNITION_H

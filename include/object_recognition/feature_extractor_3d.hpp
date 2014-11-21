@@ -12,10 +12,8 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/search/kdtree.h>
 
-#define CLOUD_RES  0.005 // [m]
-#define KEYPOINT_RES 0.01 // [m]
-#define PCL_MAX_Z    0.45 // [m]
-#define PCL_MAX_X    0.3 // [m]
+#define CLOUD_RES  0.001 // [m]
+#define KEYPOINT_RES 0.005 // [m]
 /**
  * @brief Takes as an input a point cloud image containing one object, and
  * performs the following operations:
@@ -69,7 +67,7 @@ void Feature_Extractor_3D<DescriptorExtractor, DescriptorType>::get_descriptors(
                                                                           typename pcl::PointCloud<DescriptorType>::Ptr &descriptors)
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoints (new pcl::PointCloud<pcl::PointXYZRGB>);
-
+    std::cout << "Get descriptors "<<object_cloud->size()<<std::endl;
     // ** Extract keypoints
     keypoint_extraction(object_cloud, keypoints);
 

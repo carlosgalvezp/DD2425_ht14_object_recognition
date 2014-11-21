@@ -9,6 +9,7 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 
+#define MIN_N_CORRESPONDENCES 10
 
 template<typename DescriptorExtractor, typename DescriptorType>
 class Feature_Matching_3D
@@ -56,6 +57,8 @@ std::string Feature_Matching_3D<DescriptorExtractor, DescriptorType>::match(cons
         }
     }
     std::cout << "Matching: "<< max_correspondences << " correspondences." << std::endl;
+    if(max_correspondences < MIN_N_CORRESPONDENCES)
+        best_model = "";
     // ** Output result
     return best_model;
 }

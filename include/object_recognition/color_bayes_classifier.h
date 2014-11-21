@@ -9,7 +9,7 @@
 #include <vector>
 
 #define TH_MAHALANOBIS 2        // Reject points further than 2*sigma distance
-
+#define STEP 10                 // How much we subsample when analysing the image
 struct Model_Constants // To speed up operations
 {
     double log_alpha;

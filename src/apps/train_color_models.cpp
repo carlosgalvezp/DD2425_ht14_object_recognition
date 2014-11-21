@@ -32,28 +32,12 @@ void train_models(std::vector<Color_Model> &models)
 
 void getDirectories(const std::string &path, std::vector<std::pair<std::string, std::string> > &directories)
 {
-    DIR *dir;
-    struct dirent *ent;
-    const char* path_c = path.c_str();
-    // ** Open base directory, which contains a folder for every model
-    if((dir = opendir(path_c)) != NULL)
+    std::vector<std::string> m_names = {"red", "green", "blue", "yellow", "purple"};
+    for(std::size_t i = 0; i < m_names.size(); ++i)
     {
-        std::cout << "Entering main directory " << path << std::endl;
-        // ** Read entities (files or folders) and process folders only
-        while((ent = readdir(dir)) != NULL)
-        {
-            if(ent->d_type == DT_DIR && ent->d_name[0] != '.')
-            {
-                std::string model_name = ent->d_name;
-                std::string model_path = path + model_name;
-                directories.push_back(std::pair<std::string, std::string>(model_name, model_path));
-            }
-        }
-
-    }
-    else
-    {
-        std::cout <<"Can't read directory "<<path<<std::endl;
+        std::string model_name = m_names[i];
+        std::string model_path = path + model_name;
+        directories.push_back(std::pair<std::string, std::string>(model_name, model_path));
     }
 }
 

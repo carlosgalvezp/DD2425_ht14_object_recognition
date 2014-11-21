@@ -35,6 +35,7 @@ void Color_Bayes_Classifier::read_models()
 
 int Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mask, const std::vector<int> &classes)
 {
+    std::cout << "CLASSIFYING COLOR"<<std::endl;
     // **  Create pixel counters
     std::vector<int> color_counters(classes.size());
     for(std::size_t i = 0; i < color_counters.size(); ++i)
@@ -45,9 +46,9 @@ int Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mask
     cv::split(hsv_img, hsv_channels);
 
     // ** Classify every pixel
-    for(unsigned int i = 0; i < hsv_img.rows; ++i)
+    for(unsigned int i = 0; i < hsv_img.rows; i+=STEP)
     {
-        for(unsigned int j = 0; j < hsv_img.cols; ++j)
+        for(unsigned int j = 0; j < hsv_img.cols; j+=STEP)
         {
             if(mask.at<uint8_t>(i,j) != 0)
             {
@@ -79,7 +80,8 @@ int Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mask
             max_idx = i;
         }
     }
-    return max_idx;
+    std::cout << "FINISH CLASSIFIER"<<std::endl;
+    return classes[max_idx];
 }
 
 

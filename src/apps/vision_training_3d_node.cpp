@@ -24,10 +24,15 @@
 #include <pcl/point_cloud.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/common/transforms.h>
 
 // OpenCV
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+
+// Eigen
+#include <Eigen/Core>
+#include <Eigen/LU>
 
 #define QUEUE_SIZE 1000
 #define PUBLISH_RATE 1.0/5.0  //Save data every 5 seconds
@@ -51,6 +56,8 @@ private:
     ros::Subscriber pcl_sub_;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_;
 
+    Eigen::Matrix4f t_cam_to_robot_;
+
     Object_Extractor_3D object_extractor_;
     Feature_Extractor_3D<RAS_Utils::DescriptorExtractor, RAS_Utils::DescriptorType> feature_extractor_;
 
@@ -63,6 +70,7 @@ private:
     void process_model_folder(std::string path);
     void process_model(std::string path);
 
+    void load_calibration(const std::string &path);
 };
 
 // =============================================================================
@@ -119,6 +127,8 @@ Vision_Training::Vision_Training(const ros::NodeHandle& n)
     // Point Cloud
     pcl_sub_ = n_.subscribe<pcl::PointCloud<pcl::PointXYZRGB> >
             ("/camera/depth_registered/points", QUEUE_SIZE, &Vision_Training::PCL_Callback,this);
+
+    load_calibration(RAS_Names::CALIBRATION_PATH);
 }
 
 void Vision_Training::record_data(std::string model_name)
@@ -149,7 +159,9 @@ void Vision_Training::record_data(std::string model_name)
             std::stringstream ss;
             // Create directory if it does not exist
             ss << raw_folder <<model_name<<"_"<<n_item<<".pcd";
-            pcl::io::savePCDFile(ss.str(), *cloud_);
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_t (new pcl::PointCloud<pcl::PointXYZRGB>);
+            pcl::transformPointCloud(*cloud_, *cloud_t, t_cam_to_robot_);
+            pcl::io::savePCDFile(ss.str(), *cloud_t);
 
             ++n_item;
         }
@@ -192,8 +204,12 @@ void Vision_Training::process_model_folder(std::string path)
 {
     // Empty descriptors folder
     std::string descriptors_folder = path + "/descriptors/";
+    std::string objects_folder = path + "/object/";
+
     boost::filesystem::remove_all(descriptors_folder); // This also removes the /raw/ folder
     boost::filesystem::create_directory(descriptors_folder); // Re-create it
+    boost::filesystem::remove_all(objects_folder); // This also removes the /raw/ folder
+    boost::filesystem::create_directory(objects_folder); // Re-create it
 
     DIR *dir;
     struct dirent *ent;
@@ -212,6 +228,7 @@ void Vision_Training::process_model_folder(std::string path)
                 std::string cloud_path = path + "/raw/" + f_name;
                 std::string f_name_no_ext = f_name.substr(0, f_name.length()-4);
                 std::string desc_name = descriptors_folder+f_name_no_ext + "_desc.pcd";
+                std::string object_name = objects_folder+f_name_no_ext + "_obj.pcd";
 
                 std::cout << "\t Saving into "<<desc_name << std::endl;
 
@@ -224,13 +241,15 @@ void Vision_Training::process_model_folder(std::string path)
                 pcl::io::loadPCDFile(cloud_path, *cloud_in);
 
                 // Extract object
-                object_extractor_.extract_object(cloud_in, object);
+                pcl::PointXYZ p(0,0,0);
+                object_extractor_.extract_object(cloud_in, p, object);
 
                 // Extract descriptors
                 feature_extractor_.get_descriptors(object, descriptors);
 
                 // Save descriptors
                 pcl::io::savePCDFile(desc_name, *descriptors);
+                pcl::io::savePCDFile(object_name, *object);
             }
         }
     }
@@ -244,4 +263,20 @@ void Vision_Training::PCL_Callback(const pcl::PointCloud<pcl::PointXYZRGB>::Cons
 {
     cloud_.reset(new pcl::PointCloud<pcl::PointXYZRGB>());
     pcl::copyPointCloud(*pcl_msg, *cloud_);
+}
+
+void Vision_Training::load_calibration(const std::string &path)
+{
+    std::ifstream file;
+    file.open(path.c_str());
+    t_cam_to_robot_ = Eigen::Matrix4f::Identity();
+    for(unsigned int i = 0; i < 4; ++i)
+    {
+        for(unsigned int j = 0; j < 4; ++j)
+        {
+            file >> t_cam_to_robot_(i,j);
+        }
+    }
+    std::cout << "Read calibration: "<<std::endl << t_cam_to_robot_<<std::endl;
+    file.close();
 }

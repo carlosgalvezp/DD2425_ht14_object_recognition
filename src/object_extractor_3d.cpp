@@ -5,45 +5,50 @@ Object_Extractor_3D::Object_Extractor_3D()
 }
 
 void Object_Extractor_3D::extract_object(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in,
-                                            pcl::PointCloud<pcl::PointXYZRGB>::Ptr      &cloud_out)
+                                         const pcl::PointXYZ &mass_center,
+                                         pcl::PointCloud<pcl::PointXYZRGB>::Ptr      &cloud_out)
 {
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_preproc(new pcl::PointCloud<pcl::PointXYZRGB>);
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_no_planes(new pcl::PointCloud<pcl::PointXYZRGB>);
-
     // ** Downsample
-    preprocess(cloud_in, cloud_preproc);
+    preprocess(cloud_in, mass_center, cloud_out);
 
     // ** Remove dominant planes
-    removePlanes(cloud_preproc, cloud_no_planes);
+//    removePlanes(cloud_preproc, cloud_no_planes);
 
     // ** Get biggest resulting cluster
-    extractCluster(cloud_no_planes, cloud_out);
+//    extractCluster(cloud_preproc, cloud_out);
+//    pcl::copyPointCloud(*cloud_preproc, *cloud_out);
 }
 
 void Object_Extractor_3D::preprocess(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in,
-                                        pcl::PointCloud<pcl::PointXYZRGB>::Ptr      &cloud_out)
+                                     const pcl::PointXYZ &mass_center,
+                                           pcl::PointCloud<pcl::PointXYZRGB>::Ptr      &cloud_out)
 {
-    ROS_INFO("Preprocessing...");
+//    ROS_INFO("Preprocessing...%lu", cloud_in->points.size());
+//    // ** Voxel Grid filter (downsampling)
+//    pcl::VoxelGrid<pcl::PointXYZRGB> vg;
+//    vg.setInputCloud (cloud_in);
+//    vg.setLeafSize (0.01, 0.01, 0.01);
+//    vg.filter (*cloud_out);
 
-    // ** Voxel Grid filter (downsampling)
-    pcl::VoxelGrid<pcl::PointXYZRGB> vg;
-    vg.setInputCloud (cloud_in);
-    vg.setLeafSize (CLOUD_RES, CLOUD_RES, CLOUD_RES);
-    vg.filter (*cloud_out);
-
-
+    pcl::copyPointCloud(*cloud_in, *cloud_out);
     // ** Pass-through filter
-//    pcl::PassThrough<pcl::PointXYZ> pt_filter;
-//    pt_filter.setInputCloud (cloud_out);
-//    pt_filter.setFilterFieldName ("z");
-//    pt_filter.setFilterLimits (0.0, PCL_MAX_Z);
-//    pt_filter.filter (*cloud_out);
-//    pt_filter.setInputCloud (cloud_out);
-//    pt_filter.setFilterFieldName ("x");
-//    pt_filter.setFilterLimits (-PCL_MAX_X/2.0, PCL_MAX_X/2.0);
-//    pt_filter.filter (*cloud_out);
+    pcl::PassThrough<pcl::PointXYZRGB> pt_filter;
+    pt_filter.setInputCloud (cloud_out);
+    pt_filter.setFilterFieldName ("z");
+    pt_filter.setFilterLimits (0.015, 0.1);
+    pt_filter.filter (*cloud_out);
 
+    pt_filter.setInputCloud (cloud_out);
+    pt_filter.setFilterFieldName ("x");
+    pt_filter.setFilterLimits (0.05, 0.5);
+    pt_filter.filter (*cloud_out);
 
+    // ** Get cluster if needed
+    extractCluster2(cloud_out, mass_center, cloud_out);
+    PCL_Utils::visualizePointCloud(cloud_out);
+    ROS_INFO("FINISHED PREPROCESSING");
 }
 
 void Object_Extractor_3D::removePlanes(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in,
@@ -88,7 +93,7 @@ void Object_Extractor_3D::removePlanes(const pcl::PointCloud<pcl::PointXYZRGB>::
         extract.setIndices (inliers);
         extract.setNegative (false);
         extract.filter (*cloud_p);
-        std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << std::endl;
+        std::cout << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << std::endl;
 
         // Create the filtering object
         extract.setNegative (true);
@@ -99,48 +104,88 @@ void Object_Extractor_3D::removePlanes(const pcl::PointCloud<pcl::PointXYZRGB>::
     pcl::copyPointCloud(*cloud_filtered, *cloud_out);
 }
 
+void Object_Extractor_3D::extractCluster2(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in, const pcl::PointXYZ &mass_center,
+                                          pcl::PointCloud<pcl::PointXYZRGB>::Ptr &cloud_out)
+{
+    // * Search around the mass_center
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_tmp (new pcl::PointCloud<pcl::PointXYZ>);
+
+    pcl::copyPointCloud(*cloud_in,*cloud);
+    pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+    kdtree.setInputCloud (cloud);
+
+    // K nearest neighbor search
+
+    int K = 100;
+    std::cout << "Position: "<<mass_center.x << ","<<mass_center.y<<","<<mass_center.z<<std::endl;
+    std::vector<int> pointIdxNKNSearch(K);
+    std::vector<float> pointNKNSquaredDistance(K);
+
+    if ( kdtree.nearestKSearch (mass_center, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 )
+    {
+        cloud_tmp->resize(pointIdxNKNSearch.size());
+        cloud_tmp->height = 1;
+        cloud_tmp->width = pointIdxNKNSearch.size();
+
+        for (size_t i = 0; i < pointIdxNKNSearch.size (); ++i)
+        {
+            std::cout << pointNKNSquaredDistance[i]<<std::endl;
+            cloud_tmp->points[i] = cloud-> points[pointIdxNKNSearch[i]];
+        }
+    }
+
+    pcl::copyPointCloud(*cloud_tmp, *cloud_out);
+}
+
 void Object_Extractor_3D::extractCluster(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in,
                                             pcl::PointCloud<pcl::PointXYZRGB>::Ptr      &cloud_out)
 {
-    ROS_INFO("Extracting cluster...");
-    // Creating the KdTree object for the search method of the extraction
-    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
-    tree->setInputCloud (cloud_in);
-
-    std::vector<pcl::PointIndices> cluster_indices;
-    pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
-    ec.setClusterTolerance (0.02); // 2cm
-    ec.setMinClusterSize (100);
-    ec.setMaxClusterSize (25000);
-    ec.setSearchMethod (tree);
-    ec.setInputCloud (cloud_in);
-    ec.extract (cluster_indices);
-
-    double max_size = 0;
-    double max_idx = -1;
-    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clusters;
-    int j = 0;
-    for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
+    if(cloud_in->points.size() !=0)
     {
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZRGB>);
-        for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
+        ROS_INFO("Extracting cluster...");
+        // Creating the KdTree object for the search method of the extraction
+        pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZRGB>);
+        tree->setInputCloud (cloud_in);
+
+        std::vector<pcl::PointIndices> cluster_indices;
+        pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
+        ec.setClusterTolerance (0.01); // [cm]
+        ec.setMinClusterSize (100);
+        ec.setMaxClusterSize (10000);
+        ec.setSearchMethod (tree);
+        ec.setInputCloud (cloud_in);
+        ec.extract (cluster_indices);
+
+        double min_distance = 100;
+        double max_idx = -1;
+        // Take closest cluster
+        std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> clusters;
+        int j = 0;
+        for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
         {
-            cloud_cluster->points.push_back (cloud_in->points[*pit]); //*
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZRGB>);
+            for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
+            {
+                cloud_cluster->points.push_back (cloud_in->points[*pit]); //*
+            }
+
+            cloud_cluster->width = cloud_cluster->points.size ();
+            cloud_cluster->height = 1;
+            cloud_cluster->is_dense = true;
+
+            clusters.push_back(cloud_cluster);
+
+            Eigen::Vector4f centroid;
+            pcl::compute3DCentroid(*cloud_cluster, centroid);
+            std::cout << "Cloud: "<<cloud_cluster->points.size() << " , "<<centroid(0,0)<<std::endl;
+            if(centroid(0,0) < min_distance)
+            {
+                min_distance = centroid(0,0);
+                max_idx = j;
+            }
+            ++j;
         }
-
-        cloud_cluster->width = cloud_cluster->points.size ();
-        cloud_cluster->height = 1;
-        cloud_cluster->is_dense = true;
-
-        clusters.push_back(cloud_cluster);
-
-        if(cloud_cluster->points.size() > max_size)
-        {
-            max_size = cloud_cluster->points.size();
-            max_idx = j;
-        }
-        ++j;
-    }
-
     pcl::copyPointCloud(*(clusters[max_idx]), *cloud_out);
+    }
 }

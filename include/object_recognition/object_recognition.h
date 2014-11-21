@@ -23,11 +23,7 @@ class Object_Recognition
 public:
     Object_Recognition();
 
-    std::string classify(const cv::Mat &rgb_img,
-                         const cv::Mat &depth_img,
-                         const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud,
-                         const cv::Mat &mask_img,
-                         const Eigen::Matrix4f &t_cam_to_robot, const pcl::PointXYZ &mass_center);
+    std::string classify(const cv::Mat &hsv_img, const cv::Mat &depth_img, const cv::Mat &mask_img);
 private:
     Color_Bayes_Classifier color_classifier_;
     Object_Recognition_3D classifier3D_;

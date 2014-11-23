@@ -109,7 +109,7 @@ std::string Object_Recognition_2D_Node::recognize(const cv::Mat &rgb_img, const 
             ///@todo need triangle detector
             break;
         case 1: // RED/ORANGE
-            if(shape_detector_.circle_detection(rgb_img, mask))
+            if(shape_detector_.circle_detection(rgb_img, mask, false))
             {
                 result = "a red ball";
             }
@@ -127,7 +127,7 @@ std::string Object_Recognition_2D_Node::recognize(const cv::Mat &rgb_img, const 
 
             break;
         case 2: // GREEN
-             if(shape_detector_.circle_detection(rgb_img,mask))
+             if(shape_detector_.circle_detection(rgb_img,mask,false))
              {
                 result = "a green cylinder";
              }
@@ -140,7 +140,7 @@ std::string Object_Recognition_2D_Node::recognize(const cv::Mat &rgb_img, const 
             result = "a purple cross";
             break;
         case 4: // YELLOW
-            if(shape_detector_.circle_detection(rgb_img,mask))
+            if(shape_detector_.circle_detection(rgb_img,mask,false))
             {
                 result = "a yellow ball";
             }

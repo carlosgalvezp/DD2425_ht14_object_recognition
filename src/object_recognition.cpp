@@ -48,7 +48,7 @@ std::string Object_Recognition::classify(const cv::Mat &rgb_img, const cv::Mat &
     }
     else
     {
-        if(shape_detector_.circle_detection(rgb_img, mask_img))
+        if(shape_detector_.circle_detection(rgb_img, mask_img, false))
         {
             colors = {COLOR_RED,COLOR_YELLOW};
             c = color_classifier_.classify(hsv_img, mask_img, colors);

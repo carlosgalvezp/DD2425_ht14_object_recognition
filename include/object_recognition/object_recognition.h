@@ -4,7 +4,7 @@
 #include <object_recognition/color_bayes_classifier.h>
 #include <object_recognition/object_recognition_3d.h>
 #include <ras_utils/pcl_utils.h>
-
+#include <object_recognition/shape_detector_2d.h>
 // OpenCV
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -23,10 +23,11 @@ class Object_Recognition
 public:
     Object_Recognition();
 
-    std::string classify(const cv::Mat &hsv_img, const cv::Mat &depth_img, const cv::Mat &mask_img);
+    std::string classify(const cv::Mat &rgb_img, const cv::Mat &depth_img, const cv::Mat &mask_img, bool is_concave);
 private:
     Color_Bayes_Classifier color_classifier_;
     Object_Recognition_3D classifier3D_;
+    Shape_Detector_2D shape_detector_;
 
     bool is_concave(const cv::Mat &depth_img, const cv::Mat &mask_img);
 };

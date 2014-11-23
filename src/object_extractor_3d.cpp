@@ -47,7 +47,7 @@ void Object_Extractor_3D::preprocess(const pcl::PointCloud<pcl::PointXYZRGB>::Co
 
     // ** Get cluster if needed
     extractCluster2(cloud_out, mass_center, cloud_out);
-    PCL_Utils::visualizePointCloud(cloud_out);
+//    PCL_Utils::visualizePointCloud(cloud_out);
     ROS_INFO("FINISHED PREPROCESSING");
 }
 

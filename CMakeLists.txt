@@ -148,6 +148,7 @@ add_executable(test_object_recognition src/apps/test_object_recognition.cpp)
 add_executable(train_color_models src/apps/train_color_models.cpp)
 add_executable(vision_training_2d_node src/apps/vision_training_2d_node.cpp)
 add_executable(vision_training_3d_node src/apps/vision_training_3d_node.cpp)
+add_executable(test_shape_detection src/apps/test_shape_detector.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -161,6 +162,7 @@ target_link_libraries(test_object_recognition object_recognition ${catkin_LIBRAR
 target_link_libraries(train_color_models object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(vision_training_2d_node object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 target_link_libraries(vision_training_3d_node object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(test_shape_detection object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 #target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 #target_link_libraries(object_recognition_3d ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

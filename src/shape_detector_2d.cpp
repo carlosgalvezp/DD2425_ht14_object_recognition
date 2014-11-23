@@ -1,117 +1,49 @@
 #include <object_recognition/shape_detector_2d.h>
+
+
+// ** Shape detector parameters
+#define CIRCLE_DETECTOR_CANNY_TH    100
+#define CIRCLE_DETECTOR_ACCUM_TH    20
+#define CIRCLE_DETECTOR_MIN_R       25
+#define CIRCLE_DETECTOR_MAX_R       45
+
 Shape_Detector_2D::Shape_Detector_2D()
 {
 }
 
-bool Shape_Detector_2D::circle_detection(const cv::Mat &rgb_img)
+bool Shape_Detector_2D::circle_detection(const cv::Mat &bgr_img, const cv::Mat &color_mask)
 {
+    // ** Convert to gray
+    cv::Mat src_gray;
+    cv::cvtColor( bgr_img, src_gray, CV_BGR2GRAY );
 
-/////////////////////////////////////
-//      PARAMETERS                 //
-/////////////////////////////////////
+    // ** Sharpen image
+    cv::Mat tmp;
+    cv::GaussianBlur(src_gray, tmp, cv::Size(5,5), 5);
+    cv::addWeighted(src_gray, 1.5, tmp, -0.5, 0, src_gray);
 
-  //parameters in sobel function for edge detection
-  int scale = 3;
-  int delta = 0;
-
-  //parameters in Hough transform for circle detection
-  int ratio = 2;          //invers ratio of resolution, the bigger value, the worse resolution, recommend 3
-  int edge_param = 130;   //threshhold for converting edged image to binary, recommend 300
-  int center_param = 100; //threshhold for detection of a circle, recommmend 200
-  int radius_min = 30;    //red ball radius betwwen 40-75
-  int radium_max = 75;    // 0,0 means no limit
-
-
-//////////////////////////////////////////////////////////
-//      1) Load image, blur, convert to grayscale       //
-//////////////////////////////////////////////////////////
-
-  /// Load an image
-  cv::Mat src = rgb_img;
-
-  /// Blur image
-  cv::GaussianBlur( src, src, cv::Size(3,3), 3, 3, cv::BORDER_DEFAULT );  //Size Size(9,9), 2, 2,
-//  namedWindow("Win2", CV_WINDOW_AUTOSIZE);
-//  imshow("Win2", src);
-  //waitKey(0);
-
-  /// Convert it to gray
-  cv::Mat src_gray;
-  cv::cvtColor( src, src_gray, CV_RGB2GRAY );
-
-//  namedWindow("Win3", CV_WINDOW_AUTOSIZE);
-//  imshow("Win3", src_gray);
-  //waitKey(0);
-
-
-/////////////////////////////////////////////////////////////
-//      2) Find edges in the image using Sobel method      //
-/////////////////////////////////////////////////////////////
-
-  /// Generate grad_x and grad_y
-  cv::Mat grad_x, grad_y;
-  cv::Mat abs_grad_x, abs_grad_y;
-
-  /// Gradient X
-  //Scharr( src_gray, grad_x, ddepth, 1, 0, scale, delta, BORDER_DEFAULT );
-  cv::Sobel( src_gray, grad_x, CV_16S, 1, 0, 3, scale, delta, cv::BORDER_DEFAULT );
-  cv::convertScaleAbs( grad_x, abs_grad_x );
-
-  /// Gradient Y
-  //Scharr( src_gray, grad_y, ddepth, 0, 1, scale, delta, BORDER_DEFAULT );
-  cv::Sobel( src_gray, grad_y, CV_16S, 0, 1, 3, scale, delta, cv::BORDER_DEFAULT );
-  cv::convertScaleAbs( grad_y, abs_grad_y );
-
-  /// Total Gradient (approximate)
-  cv::Mat grad;
-  cv::addWeighted( abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad );
-
-//  namedWindow("Win4", CV_WINDOW_AUTOSIZE);
-//  imshow("Win4", grad);
-  //waitKey(0);
-
-
-  cv::Mat binary;   int grad_low=130;  int grad_high=255;
-  cv::inRange(grad, grad_low, grad_high, binary);
-  cv::namedWindow("Win5", CV_WINDOW_AUTOSIZE);
-//  cv::imshow("Win5", binary);
-//  cv::waitKey(1);
-
-///////////////////////////////////////////////////
-//      3) Hough transform the egde image        //
-///////////////////////////////////////////////////
-
+    // ** Run Hough transform
     std::vector<cv::Vec3f> circles;
+    cv::HoughCircles( src_gray, circles, CV_HOUGH_GRADIENT, 1, src_gray.rows/8, CIRCLE_DETECTOR_CANNY_TH,
+                                                                                CIRCLE_DETECTOR_ACCUM_TH,
+                                                                                CIRCLE_DETECTOR_MIN_R,
+                                                                                CIRCLE_DETECTOR_MAX_R);
 
-     /// Apply the Hough Transform to find the circles
-
-//     cv::HoughCircles( grad, circles, CV_HOUGH_GRADIENT, ratio, grad.rows/8, edge_param, center_param, radius_min, radium_max );
-     cv::HoughCircles(src_gray, circles, CV_HOUGH_GRADIENT, ratio, grad.rows/8, edge_param, center_param, radius_min, radium_max );
-
-//     ///Draw the circles detected
-//     for( std::size_t i = 0; i < circles.size(); i++ )
-//     {
-//         cv::Point center(cv::cvRound(circles[i][0]), cvRound(circles[i][1]));
-//         int radius = cvRound(circles[i][2]);
-
-//         // circle center
-//         circle( src, center, 3, Scalar(255,255,255), -1, 8, 0 );
-//         cout<< center <<endl;
-//         // circle outline
-//         circle( src, center, radius, Scalar(255,255,255), 3, 8, 0 );
-//      }
-
-     /// Show your results
-//     namedWindow( "Hough Circle Transform Demo", CV_WINDOW_AUTOSIZE );
-//     imshow( "Hough Circle Transform Demo", src );
-
-//     gettimeofday(&t2, NULL);
-//     std::cout << "Time: "<<(t2.tv_sec / t1.tv_sec)*1000.0 +
-//                  (t2.tv_usec - t1.tv_usec)/1000.0 <<" ms"<< std::endl;
-
-//     waitKey(0);
-  return circles.size() > 0;
+    // clone the colour, input image for displaying purposes
+    for( size_t i = 0; i < circles.size(); i++ )
+    {
+        cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+        if(inROI(center, color_mask)) // The mask is completely filled
+            return true;
+    }
+    return false;
 }
+
+bool Shape_Detector_2D::inROI(const cv::Point &p, const cv::Mat &mask)
+{
+    return (mask.at<uint8_t>(p.y, p.x) != 0);
+}
+
 
 bool Shape_Detector_2D::square_detection(const cv::Mat &rgb_img)
 {

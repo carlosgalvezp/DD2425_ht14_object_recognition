@@ -13,83 +13,92 @@ Object_Recognition::Object_Recognition()
 //            Yes -> It's a sphere, run color classifier for red and yellow
 //            No  -> It's a cube, run color classifier for red, green, blue and yellow
 
-std::string Object_Recognition::classify(const cv::Mat &rgb_img, const cv::Mat &depth_img, const cv::Mat &mask_img, bool is_concave)
+bool Object_Recognition::classify(const cv::Mat &rgb_img, const cv::Mat &rgb_cropped, bool is_concave, const cv::Mat &color_mask, std::string &result)
 {
-    ROS_INFO("Classifying");
     std::vector<int> colors;
     int c;
-    std::string result;
+    std::string result_tmp;
     cv::Mat hsv_img;
     cv::cvtColor(rgb_img, hsv_img, CV_BGR2HSV);
 
     if(is_concave)
     {
         colors = {COLOR_RED,COLOR_GREEN,COLOR_BLUE,COLOR_PURPLE};
-        c = color_classifier_.classify(hsv_img, mask_img, colors);
+        c = color_classifier_.classify(hsv_img, color_mask, colors);
 
         switch(c)
         {
         case COLOR_RED:
-            result = OBJECT_PATRIC;
+            result_tmp = OBJECT_PATRIC;
             break;
         case COLOR_GREEN:
-            result = OBJECT_GREEN_CYLINDER;
+            result_tmp = OBJECT_GREEN_CYLINDER;
             break;
         case COLOR_BLUE:
-            result = OBJECT_BLUE_TRIANGLE;
+            result_tmp = OBJECT_BLUE_TRIANGLE;
             break;
         case COLOR_PURPLE:
-            result = OBJECT_PURPLE_CROSS;
+            result_tmp = OBJECT_PURPLE_CROSS;
             break;
         default:
-            result = OBJECT_UNKNOWN;
+            result_tmp = OBJECT_UNKNOWN;
             break;
         }
     }
     else
     {
-        if(shape_detector_.circle_detection(rgb_img, mask_img, false))
+        if(shape_detector_.circle_detection(rgb_cropped, false))
         {
             colors = {COLOR_RED,COLOR_YELLOW};
-            c = color_classifier_.classify(hsv_img, mask_img, colors);
+            c = color_classifier_.classify(hsv_img,color_mask, colors);
 
             switch(c)
             {
             case COLOR_RED:
-                result = OBJECT_RED_BALL;
+                result_tmp = OBJECT_RED_BALL;
                 break;
             case COLOR_YELLOW:
-                result = OBJECT_YELLOW_BALL;
+                result_tmp = OBJECT_YELLOW_BALL;
                 break;
             default:
-                result = OBJECT_UNKNOWN;
+                result_tmp = OBJECT_UNKNOWN;
                 break;
             }
         }
         else
         {
             colors = {COLOR_RED,COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW};
-            c = color_classifier_.classify(hsv_img, mask_img, colors);
+            c = color_classifier_.classify(hsv_img, color_mask, colors);
 
             switch(c)
             {
             case COLOR_RED:
-                result = OBJECT_RED_CUBE;
+                result_tmp = OBJECT_RED_CUBE;
                 break;
             case COLOR_GREEN:
-                result = OBJECT_GREEN_CUBE;
+                result_tmp = OBJECT_GREEN_CUBE;
                 break;
             case COLOR_BLUE:
-                result = OBJECT_BLUE_CUBE;
+                result_tmp = OBJECT_BLUE_CUBE;
                 break;
             case COLOR_YELLOW:
-                result = OBJECT_YELLOW_CUBE;
+                result_tmp = OBJECT_YELLOW_CUBE;
                 break;
             default:
-                result = OBJECT_UNKNOWN;
+                result_tmp = OBJECT_UNKNOWN;
                 break;
             }
         }
     }
-    return result;
+    if(classifications.size() < N_CLASSIFICATIONS)
+    {
+        classifications.push_back(result_tmp);
+        return false;
+    }
+    else
+    {
+        result = RAS_Utils::get_most_repeated<std::string>(classifications);
+        classifications.clear();
+        return true;
+    }
 }

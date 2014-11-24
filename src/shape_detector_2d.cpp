@@ -11,8 +11,9 @@ Shape_Detector_2D::Shape_Detector_2D()
 {
 }
 
-bool Shape_Detector_2D::circle_detection(const cv::Mat &bgr_img, const cv::Mat &color_mask, bool show)
+bool Shape_Detector_2D::circle_detection(const cv::Mat &bgr_img, bool show)
 {
+
     // ** Convert to gray
     cv::Mat src_draw;
     bgr_img.copyTo(src_draw);
@@ -25,11 +26,7 @@ bool Shape_Detector_2D::circle_detection(const cv::Mat &bgr_img, const cv::Mat &
 //    cv::GaussianBlur(src_gray, tmp, cv::Size(5,5), 5);
     cv::Laplacian(src_gray, laplacian, CV_16S,3);
     convertScaleAbs( laplacian, edge_image);
-    cv::imshow("Laplacian", edge_image);
-    cv::imshow("Source gray", src_gray);
     cv::addWeighted(src_gray, 1.5, edge_image, -0.5, 0, src_gray);
-    cv::imshow("After gray", src_gray);
-    cv::waitKey(1);
     // ** Run Hough transform
     std::vector<cv::Vec3f> circles;
     cv::HoughCircles( src_gray, circles, CV_HOUGH_GRADIENT, 1, src_gray.rows/8, CIRCLE_DETECTOR_CANNY_TH,
@@ -38,27 +35,23 @@ bool Shape_Detector_2D::circle_detection(const cv::Mat &bgr_img, const cv::Mat &
                                                                                 CIRCLE_DETECTOR_MAX_R);
 
     // clone the colour, input image for displaying purposes
-    bool result = false;
-    for( size_t i = 0; i < circles.size(); i++ )
+    if(show)
     {
-        if(show)
+        for( size_t i = 0; i < circles.size(); i++ )
         {
-            ROS_INFO("CIRCLE");
-           cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
-           int radius = cvRound(circles[i][2]);
-           // circle center
-           cv::circle( src_draw, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
-           // circle outline
-           cv::circle( src_draw, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
-           cv::imshow("Circles", src_draw);
-           cv::waitKey(1);
-        }
-        cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
 
-        if(inROI(center, color_mask)) // The mask is completely filled
-            result = true;
+            ROS_INFO("CIRCLE");
+            cv::Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+            int radius = cvRound(circles[i][2]);
+            // circle center
+            cv::circle( src_draw, center, 3, cv::Scalar(0,255,0), -1, 8, 0 );
+            // circle outline
+            cv::circle( src_draw, center, radius, cv::Scalar(0,0,255), 3, 8, 0 );
+            cv::imshow("Circles", src_draw);
+            cv::waitKey(1);
+        }
     }
-    return result;
+    return circles.size()>0;
 }
 
 bool Shape_Detector_2D::inROI(const cv::Point &p, const cv::Mat &mask)

@@ -18,7 +18,7 @@ class Shape_Detector_2D
 public:
     Shape_Detector_2D();
 
-    bool circle_detection(const cv::Mat &bgr_img, const cv::Mat &color_mask, bool show);
+    bool circle_detection(const cv::Mat &bgr_img, bool show);
     bool square_detection(const cv::Mat &rgb_img);
 
 

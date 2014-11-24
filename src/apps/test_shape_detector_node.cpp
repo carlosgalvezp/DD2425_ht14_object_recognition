@@ -127,11 +127,21 @@ void Test_Shape_Detector_Node::RGBD_Callback(const sensor_msgs::ImageConstPtr &r
 
     const cv::Mat& rgb_img   = rgb_ptr->image;
     const cv::Mat& depth_img = depth_ptr->image;
-    cv::Mat mask = cv::Mat::ones(rgb_img.rows, rgb_img.cols, CV_8UC1);
+    cv::Mat mask = cv::Mat::zeros(rgb_img.rows, rgb_img.cols, CV_8UC1);
+    for(unsigned int u = 275; u < 375; ++u)
+    {
+        for(unsigned int v=200; v < 350; ++v)
+        {
+            mask.at<uint8_t>(v,u) = 255;
+        }
+    }
     ++frame_nr_;
     if(frame_nr_ > 50)
     {
-        if(shape_detector.circle_detection(rgb_img, mask, true))
+        cv::Mat imgcropped;
+        rgb_img.copyTo(imgcropped, mask);
+        cv::Mat mask2 = cv::Mat::ones(imgcropped.rows, imgcropped.cols, CV_8UC1);
+        if(shape_detector.circle_detection(imgcropped, true))
             ++circle_nr_;
         ROS_INFO("Circle detection: %.1f %%",100.0*(double)circle_nr_/(frame_nr_-50));
     }

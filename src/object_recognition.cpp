@@ -47,46 +47,55 @@ bool Object_Recognition::classify(const cv::Mat &rgb_img, const cv::Mat &rgb_cro
     }
     else
     {
-        if(shape_detector_.circle_detection(rgb_cropped, false))
-        {
-            colors = {COLOR_RED,COLOR_YELLOW};
-            c = color_classifier_.classify(hsv_img,color_mask, colors);
+        colors = {COLOR_RED,COLOR_GREEN,COLOR_BLUE,COLOR_YELLOW};
+        c = color_classifier_.classify(hsv_img, color_mask, colors);
 
-            switch(c)
+        if(c == COLOR_RED || c == COLOR_YELLOW)
+        {
+            if(shape_detector_.circle_detection(rgb_cropped, false)) // ** Ball
             {
-            case COLOR_RED:
-                result_tmp = OBJECT_RED_BALL;
-                break;
-            case COLOR_YELLOW:
-                result_tmp = OBJECT_YELLOW_BALL;
-                break;
-            default:
-                result_tmp = OBJECT_UNKNOWN;
-                break;
+                switch(c)
+                {
+                    case COLOR_RED:
+                        result_tmp = OBJECT_RED_BALL;
+                        break;
+                    case COLOR_YELLOW:
+                        result_tmp = OBJECT_YELLOW_BALL;
+                        break;
+                    default:
+                        result_tmp = OBJECT_UNKNOWN;
+                        break;
+                }
+            }
+            else
+            {
+                switch(c)
+                {
+                    case COLOR_RED:
+                        result_tmp = OBJECT_RED_CUBE;
+                        break;
+                    case COLOR_YELLOW:
+                        result_tmp = OBJECT_YELLOW_CUBE;
+                        break;
+                    default:
+                        result_tmp = OBJECT_UNKNOWN;
+                        break;
+                }
             }
         }
         else
         {
-            colors = {COLOR_RED,COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW};
-            c = color_classifier_.classify(hsv_img, color_mask, colors);
-
             switch(c)
             {
-            case COLOR_RED:
-                result_tmp = OBJECT_RED_CUBE;
-                break;
-            case COLOR_GREEN:
-                result_tmp = OBJECT_GREEN_CUBE;
-                break;
-            case COLOR_BLUE:
-                result_tmp = OBJECT_BLUE_CUBE;
-                break;
-            case COLOR_YELLOW:
-                result_tmp = OBJECT_YELLOW_CUBE;
-                break;
-            default:
-                result_tmp = OBJECT_UNKNOWN;
-                break;
+                case COLOR_GREEN:
+                    result_tmp = OBJECT_GREEN_CUBE;
+                    break;
+                case COLOR_BLUE:
+                    result_tmp = OBJECT_BLUE_CUBE;
+                    break;
+                default:
+                    result_tmp = OBJECT_UNKNOWN;
+                    break;
             }
         }
     }

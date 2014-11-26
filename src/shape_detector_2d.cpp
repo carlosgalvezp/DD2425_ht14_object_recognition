@@ -184,3 +184,51 @@ bool Shape_Detector_2D::square_detection(const cv::Mat &rgb_img)
 
         cv::imshow("win1", image);
     }
+
+
+bool Shape_Detector_2D::vertical_lines(const cv::Mat &rgb_img, bool show)
+{
+    cv::Mat cdst, src_gray;
+    rgb_img.copyTo(cdst);
+
+    // ** Convert to HSV
+    cv::Mat hsv_img;
+    cv::cvtColor(rgb_img, hsv_img, CV_BGR2HSV);
+
+    // ** Get Saturation channel
+    std::vector<cv::Mat> channels;
+    cv::split(hsv_img, channels);
+    channels[1].copyTo(src_gray);
+    if(show)
+        cv::imshow("Saturation", channels[1]);
+
+    // ** Smooth
+    cv::GaussianBlur(src_gray, src_gray, cv::Size(5,5),0,0);
+
+    // ** Extract lines
+    cv::Mat dst;
+    cv::Canny(src_gray, dst, 100, 300, 3);
+    if(show)
+    {
+        cv::imshow("Canny", dst);
+        cv::waitKey(1);
+    }
+
+    std::vector<cv::Vec4i> lines;
+    cv::HoughLinesP(dst, lines, 1, CV_PI/180, 30, 50, 20 );
+    if(show)
+    {
+        for( size_t i = 0; i < lines.size(); i++ )
+        {
+            cv::Vec4i l = lines[i];
+            cv::line( cdst, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0,0,255), 3, CV_AA);
+        }
+    }
+    if(show)
+    {
+        cv::imshow("Lines",cdst);
+        cv::waitKey(1);
+    }
+    return lines.size() >=2;
+
+}

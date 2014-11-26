@@ -5,7 +5,7 @@
 #include <iostream>
 #include <ctime>
 #include <vector>
-
+#include <cmath>
 // OpenCV
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -21,6 +21,7 @@ public:
     bool circle_detection(const cv::Mat &bgr_img, bool show);
     bool square_detection(const cv::Mat &rgb_img);
 
+    bool vertical_lines(const cv::Mat &rgb_img, bool show);
 
 private:
     double angle( cv::Point pt1, cv::Point pt2, cv::Point pt0 );

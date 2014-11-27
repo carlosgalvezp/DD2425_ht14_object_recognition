@@ -6,6 +6,8 @@
 #include <ras_utils/pcl_utils.h>
 #include <ras_utils/ras_utils.h>
 #include <object_recognition/shape_detector_2d.h>
+#include <object_recognition/ryan_vision.h>
+
 // OpenCV
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -32,10 +34,12 @@ private:
     Color_Bayes_Classifier color_classifier_;
     Object_Recognition_3D classifier3D_;
     Shape_Detector_2D shape_detector_;
+    std::vector<std::string> classifications;
 
     bool is_concave(const cv::Mat &depth_img, const cv::Mat &mask_img);
 
-    std::vector<std::string> classifications;
+    bool classifyCarlos(const cv::Mat &rgb_img, const cv::Mat &rgb_cropped, bool is_concave, const cv::Mat &color_mask, std::string &result);
+
 };
 
 #endif // OBJECT_RECOGNITION_H

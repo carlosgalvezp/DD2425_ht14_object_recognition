@@ -15,6 +15,17 @@ Object_Recognition::Object_Recognition()
 
 bool Object_Recognition::classify(const cv::Mat &rgb_img, const cv::Mat &rgb_cropped, bool is_concave, const cv::Mat &color_mask, std::string &result)
 {
+//    classifyCarlos(rgb_img, rgb_cropped, is_concave, color_mask, result);
+    cv::Mat rgb_converted;
+    cv::cvtColor(rgb_img, rgb_converted, CV_BGR2RGB);
+    detectRyan(rgb_converted);
+    result = "blabla";
+    return false;
+}
+
+
+bool Object_Recognition::classifyCarlos(const cv::Mat &rgb_img, const cv::Mat &rgb_cropped, bool is_concave, const cv::Mat &color_mask, std::string &result)
+{
     std::vector<int> colors;
     int c;
     std::string result_tmp;
@@ -110,4 +121,6 @@ bool Object_Recognition::classify(const cv::Mat &rgb_img, const cv::Mat &rgb_cro
         classifications.clear();
         return true;
     }
+
+
 }

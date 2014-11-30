@@ -3,7 +3,8 @@
 
 void detectRyan (const cv::Mat &image)
 {
-
+    cv::imshow("RYAN IMAGE", image);
+    std::cout << "RYAN CODE"<<std::endl;
 ////////////////////////////////////////////////
 //          How this code work                //
 ////////////////////////////////////////////////
@@ -28,8 +29,8 @@ int sat_low=100; int sat_high=255; int bright_low=150; int bright_high=255;
 bool blue=false; bool red=false; bool green=false; bool purple=false; bool yellow=false;
 int max_contour_pixles=2000;
 int color_idx=5; //1-purple, 2-red, 3-green, 4-blue, 5-yellow
-int contour_min = 20;   //a perfect square is 75
-int contour_max = 200;
+int contour_min = 50;   //a perfect square is 75
+int contour_max = 150;
 
 
 
@@ -43,20 +44,20 @@ for(color_idx = 1; color_idx < 6; color_idx++){
 ///////////////////////////////////////////////////////////////////////////////////
 
 Mat image_modified_lightning;
-for(int i = 0; i < 10; i++){
-    if(i==0){image_modified_lightning = image*0.4;cout<<"lightning condition: lightX0.4"<<endl;}
-    if(i==1){image_modified_lightning = image*0.5;cout<<"lightning condition: lightX0.5"<<endl;}
-    if(i==2){image_modified_lightning = image*0.6;cout<<"lightning condition: lightX0.6"<<endl;}
-    if(i==3){image_modified_lightning = image*0.7;cout<<"lightning condition: lightX0.7"<<endl;}
-    if(i==4){image_modified_lightning = image*0.8;cout<<"lightning condition: lightX0.8"<<endl;}
-    if(i==5){image_modified_lightning = image*0.9;cout<<"lightning condition: lightX0.9"<<endl;}
-    if(i==6){image_modified_lightning = image*1.0;cout<<"lightning condition: NORMAL"<<endl;}
-    if(i==7){image_modified_lightning = image*1.1;cout<<"lightning condition: lightX1.1"<<endl;}
-    if(i==7){image_modified_lightning = image*1.2;cout<<"lightning condition: lightX1.2"<<endl;}
-    if(i==8){image_modified_lightning = image*1.3;cout<<"lightning condition: lightX1.3"<<endl;}
-    if(i==9){image_modified_lightning = image*1.4;cout<<"lightning condition: lightX1.4"<<endl;}
-    if(i==8){image_modified_lightning = image*1.5;cout<<"lightning condition: lightX1.5"<<endl;}
-    if(i==9){image_modified_lightning = image*1.6;cout<<"lightning condition: lightX1.6"<<endl;}
+for(int i = 0; i < 4; i++){
+//    if(i==0){image_modified_lightning = image*0.4;cout<<"lightning condition: lightX0.4"<<endl;}
+//    if(i==1){image_modified_lightning = image*0.5;cout<<"lightning condition: lightX0.5"<<endl;}
+//    if(i==2){image_modified_lightning = image*0.6;cout<<"lightning condition: lightX0.6"<<endl;}
+    if(i==0){image_modified_lightning = image*0.8;cout<<"lightning condition: lightX0.8"<<endl;}
+    if(i==1){image_modified_lightning = image*1.0;cout<<"lightning condition: lightNORMAL"<<endl;}
+    if(i==2){image_modified_lightning = image*1.2;cout<<"lightning condition: lightX1.2"<<endl;}
+    if(i==3){image_modified_lightning = image*1.4;cout<<"lightning condition: lightX1.4"<<endl;}
+//    if(i==7){image_modified_lightning = image*1.1;cout<<"lightning condition: lightX1.1"<<endl;}
+//    if(i==7){image_modified_lightning = image*1.2;cout<<"lightning condition: lightX1.2"<<endl;}
+//    if(i==8){image_modified_lightning = image*1.3;cout<<"lightning condition: lightX1.3"<<endl;}
+//    if(i==9){image_modified_lightning = image*1.4;cout<<"lightning condition: lightX1.4"<<endl;}
+//    if(i==8){image_modified_lightning = image*1.5;cout<<"lightning condition: lightX1.5"<<endl;}
+//    if(i==9){image_modified_lightning = image*1.6;cout<<"lightning condition: lightX1.6"<<endl;}
 
 
 
@@ -298,7 +299,7 @@ if (contours_yellow.size()==1)
 
 //cout << "Done"<< endl;
 //waitKey(0);
-destroyAllWindows();
+//destroyAllWindows();
 
 }//end of one lighting condition
 
@@ -313,7 +314,7 @@ if(yellow==true){cout << "Found YELLOW Object!"<<endl;}
 
 
 //imshow("Input Raw Image", image);
-//waitKey(0);
+cv::waitKey();
 
 
 }//end of function

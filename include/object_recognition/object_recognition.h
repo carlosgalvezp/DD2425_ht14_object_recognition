@@ -1,6 +1,7 @@
 #ifndef OBJECT_RECOGNITION_H
 #define OBJECT_RECOGNITION_H
 
+#include <ros/ros.h>
 #include <object_recognition/color_bayes_classifier.h>
 #include <object_recognition/object_recognition_3d.h>
 #include <ras_utils/pcl_utils.h>
@@ -14,6 +15,9 @@
 
 // PCL
 #include <pcl/common/transforms.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+#include <pcl_ros/point_cloud.h>
 
 // Eigen
 #include <Eigen/Core>
@@ -28,18 +32,23 @@ class Object_Recognition
 {
 public:
     Object_Recognition();
+    Object_Recognition(const ros::Publisher &pcl_pub, const Eigen::Matrix4f &t_cam_to_robot);
 
-    bool classify(const cv::Mat &rgb_img, const cv::Mat &rgb_cropped, bool is_concave, const cv::Mat &color_mask, std::string &result);
+    bool classify(const cv::Mat &rgb_img, const cv::Mat &depth_img, const cv::Mat &color_mask, std::string &result);
 private:
     Color_Bayes_Classifier color_classifier_;
     Object_Recognition_3D classifier3D_;
     Shape_Detector_2D shape_detector_;
     std::vector<std::string> classifications;
 
+    ros::Publisher pcl_pub_;
+    Eigen::Matrix4f t_cam_to_robot_;
+
     bool is_concave(const cv::Mat &depth_img, const cv::Mat &mask_img);
 
-    bool classifyCarlos(const cv::Mat &rgb_img, const cv::Mat &rgb_cropped, bool is_concave, const cv::Mat &color_mask, std::string &result);
+    bool classifyCarlos(const cv::Mat &rgb_img, const cv::Mat &depth_img, const cv::Mat &color_mask, std::string &result);
 
+    std::vector<std::string> object_names;
 };
 
 #endif // OBJECT_RECOGNITION_H

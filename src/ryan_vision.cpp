@@ -1,7 +1,7 @@
 #include <object_recognition/ryan_vision.h>
 
 
-void detectRyan (const Mat &image)
+void detectRyan (const cv::Mat &image)
 {
 
 ////////////////////////////////////////////////

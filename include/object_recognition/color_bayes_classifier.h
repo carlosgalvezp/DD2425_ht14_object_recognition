@@ -27,7 +27,7 @@ public:
     Color_Bayes_Classifier();
 
     int classify(const int &h, const int &s);
-    int classify(const cv::Mat &hsv_img, const cv::Mat &mask, const std::vector<int> &classes);
+    void classify(const cv::Mat &hsv_img, const cv::Mat &mask, const std::vector<int> &color_classes, std::vector<double> &color_probabilities);
 private:
 
     void read_models();

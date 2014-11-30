@@ -138,7 +138,7 @@ file (GLOB HEADERS include/${PROJECT_NAME}/*.h include/${PROJECT_NAME}/*.hpp)
 
 # Declare library
 add_library(object_recognition ${SOURCES} ${HEADERS})
-target_link_libraries(object_recognition ${roscpp_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(object_recognition ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES})
 
 ## Declare a cpp executable
 add_executable(test_color_bayes src/apps/test_color_bayes.cpp)

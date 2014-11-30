@@ -23,7 +23,8 @@ int main(int argc, char* argv[])
     pcl::io::loadPCDFile(argv[1], *cloud);
 
     // ** Recognize
-//    int obj_name = obj_recognition.recognize(cloud);
+    std::vector<double> class_probabilities;
+    obj_recognition.recognize(cloud, class_probabilities);
 //    std::cout << "==== The object is: "<< obj_name << " ===="<<std::endl;
 
     return 0;

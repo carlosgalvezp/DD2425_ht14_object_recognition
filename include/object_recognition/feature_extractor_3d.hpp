@@ -37,6 +37,8 @@ public:
     void get_descriptors(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object_cloud,
                       typename pcl::PointCloud<DescriptorType>::Ptr &descriptors);
 
+    void get_keypoints(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object_cloud,
+                       typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr &keypoints);
 private:    
     /**
      * @brief Extracts keypoints from the object
@@ -66,13 +68,34 @@ template<typename DescriptorExtractor, typename DescriptorType>
 void Feature_Extractor_3D<DescriptorExtractor, DescriptorType>::get_descriptors(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object_cloud,
                                                                           typename pcl::PointCloud<DescriptorType>::Ptr &descriptors)
 {
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoints (new pcl::PointCloud<pcl::PointXYZRGB>);
-    std::cout << "Get descriptors "<<object_cloud->size()<<std::endl;
+    // ** Downsample
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_downsampled(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::VoxelGrid<pcl::PointXYZRGB> vg;
+    vg.setInputCloud (object_cloud);
+    vg.setLeafSize (CLOUD_RES, CLOUD_RES, CLOUD_RES);
+    vg.filter (*object_downsampled);
+
     // ** Extract keypoints
-    keypoint_extraction(object_cloud, keypoints);
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoints (new pcl::PointCloud<pcl::PointXYZRGB>);
+    keypoint_extraction(object_downsampled, keypoints);
 
     // ** Get descriptor
     descriptor_extraction(keypoints, object_cloud, descriptors);
+}
+
+template<typename DescriptorExtractor, typename DescriptorType>
+void Feature_Extractor_3D<DescriptorExtractor, DescriptorType>::get_keypoints(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object_cloud,
+                                                                           typename pcl::PointCloud<pcl::PointXYZRGB>::Ptr &keypoints)
+{
+    // ** Downsample
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_downsampled(new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::VoxelGrid<pcl::PointXYZRGB> vg;
+    vg.setInputCloud (object_cloud);
+    vg.setLeafSize (CLOUD_RES, CLOUD_RES, CLOUD_RES);
+    vg.filter (*object_downsampled);
+
+    // ** Extract keypoints
+    keypoint_extraction(object_downsampled, keypoints);
 }
 
 
@@ -105,7 +128,7 @@ void Feature_Extractor_3D<DescriptorExtractor, DescriptorType>::descriptor_extra
     pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_estimation;
     normal_estimation.setSearchMethod
         (pcl::search::KdTree<pcl::PointXYZRGB>::Ptr (new pcl::search::KdTree<pcl::PointXYZRGB>));
-    normal_estimation.setRadiusSearch (0.015); // Tune this
+    normal_estimation.setRadiusSearch (3 * KEYPOINT_RES); // Tune this
     normal_estimation.setInputCloud (object_cloud);
     normal_estimation.compute (*cloud_normals);
 
@@ -118,7 +141,7 @@ void Feature_Extractor_3D<DescriptorExtractor, DescriptorType>::descriptor_extra
     extractor.setSearchMethod (tree);
 
     // IMPORTANT: the radius used here has to be larger than the radius used to estimate the surface normals!!!
-    extractor.setRadiusSearch (0.05); // Tune this, has to be larger than the previous one
+    extractor.setRadiusSearch (5 * KEYPOINT_RES); // Tune this, has to be larger than the previous one
 
     descriptors.reset(new pcl::PointCloud<DescriptorType>);
 
@@ -126,7 +149,7 @@ void Feature_Extractor_3D<DescriptorExtractor, DescriptorType>::descriptor_extra
     extractor.setSearchSurface(object_cloud);
     extractor.setInputNormals (cloud_normals);
     extractor.compute (*descriptors);
-
+    ROS_INFO("Descriptors: %lu", descriptors->size());
     double t_descriptors = RAS_Utils::time_diff_ms(begin, clock());
 
     ROS_INFO("Descriptors [Normal: %.3f, Descriptor: %.3f, TOTAL: %.3f ms]", t_normals, t_descriptors, t_normals + t_descriptors);

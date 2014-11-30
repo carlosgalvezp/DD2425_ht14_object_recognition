@@ -19,7 +19,7 @@ void Color_Bayes_Classifier::read_models()
         file >> model.name >> model.h_mu >> model.h_sigma >> model.s_mu >> model.s_sigma;
 
         Model_Constants m_constants;
-        m_constants.log_alpha = log(1.0/7.0); //Uniform distribution, change this!!
+        m_constants.log_alpha = log(1.0/5.0); //Uniform distribution, change this!!
         m_constants.log_sigma_h = log(model.h_sigma);
         m_constants.log_sigma_s = log(model.s_sigma);
         m_constants.inv_2_sigma_h_2 =  1.0/(2* model.h_sigma * model.h_sigma);
@@ -33,14 +33,19 @@ void Color_Bayes_Classifier::read_models()
     }
 }
 
-int Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mask, const std::vector<int> &classes)
+void Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mask, const std::vector<int> &color_classes,
+                                      std::vector<double> &color_probabilities)
 {
-    std::cout << "CLASSIFYING COLOR"<<std::endl;
+    cv::imshow("HSV_IMG", hsv_img);
+    cv::imshow("MASK", mask);
+    color_probabilities.resize(color_classes.size());
+
     // **  Create pixel counters
-    std::vector<int> color_counters(classes.size());
+    std::vector<int> color_counters(color_classes.size());
     for(std::size_t i = 0; i < color_counters.size(); ++i)
         color_counters[i] = 0;
 
+    int n_total_pixels = 0;
     // ** Get HSV channels
     std::vector<cv::Mat> hsv_channels;
     cv::split(hsv_img, hsv_channels);
@@ -52,12 +57,13 @@ int Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mask
         {
             if(mask.at<uint8_t>(i,j) != 0)
             {
+                ++n_total_pixels;
                 int c = classify(hsv_channels[0].at<uint8_t>(i,j),
                                  hsv_channels[1].at<uint8_t>(i,j));
                 int idx = -1;
-                for(unsigned int k = 0; k < classes.size(); ++k)
+                for(unsigned int k = 0; k < color_classes.size(); ++k)
                 {
-                    if(c == classes[k])
+                    if(c == color_classes[k])
                     {
                         idx = k;
                         break;
@@ -69,19 +75,19 @@ int Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mask
         }
     }
 
-    // ** Get maximum color count
-    double max_count = 0;
-    int max_idx = 0;
+    // ** Get color probability
+    double sum_p = 0;
     for(std::size_t i = 0; i < color_counters.size(); ++i)
     {
-        if(color_counters[i] > max_count)
-        {
-            max_count = color_counters[i];
-            max_idx = i;
-        }
+        color_probabilities[i] = (double)color_counters[i] / n_total_pixels;
+        sum_p += color_probabilities[i];
     }
-    std::cout << "FINISH CLASSIFIER"<<std::endl;
-    return classes[max_idx];
+
+    // ** Normalize probabilities
+    for(std::size_t i = 0; i < color_probabilities.size(); ++i)
+    {
+        color_probabilities[i] /= sum_p;
+    }
 }
 
 

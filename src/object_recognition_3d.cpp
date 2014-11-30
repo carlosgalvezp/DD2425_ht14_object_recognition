@@ -5,30 +5,20 @@ Object_Recognition_3D::Object_Recognition_3D()
 
 }
 
-int Object_Recognition_3D::recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &cloud_in, const pcl::PointXYZ &mass_center)
+void Object_Recognition_3D::recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object_cloud,
+                                      std::vector<double> &class_probabilities)
 {
-    std::string result = "";
-    // ** Segment the object, removing planes
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-    object_extractor.extract_object(cloud_in, mass_center, object_cloud);
-
-    if(object_cloud->points.size() != 0)
+    if(object_cloud != 0 && object_cloud->size() != 0)
     {
         // ** Extract descriptors
         pcl::PointCloud<RAS_Utils::DescriptorType>::Ptr descriptors(new pcl::PointCloud<RAS_Utils::DescriptorType>);
-        feature_extractor.get_descriptors(object_cloud, descriptors);
+        feature_extractor_.get_descriptors(object_cloud, descriptors);
 
         // ** Match with model database
-        result = feature_matching.match(descriptors);
+        feature_matching_.match(descriptors, class_probabilities);
     }
     else
     {
-        ROS_INFO("NO OBJECT FOUND");
+        ROS_ERROR("[Object_Recognition_3D::recognize] Object_cloud = 0");
     }
-    // ** Output result
-    if(result == "cube")
-        return 0;
-    else if (result == "ball")
-        return 1;
-    return -1;
 }

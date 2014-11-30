@@ -8,7 +8,9 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
-
+#include <pcl/search/kdtree.h>
+#include <pcl/correspondence.h>
+#include <pcl/recognition/cg/geometric_consistency.h>
 #define MIN_N_CORRESPONDENCES 10
 
 template<typename DescriptorExtractor, typename DescriptorType>
@@ -16,10 +18,14 @@ class Feature_Matching_3D
 {
 public:
     Feature_Matching_3D();
-    std::string match(const typename pcl::PointCloud<DescriptorType>::ConstPtr &object_descriptors);
+    void match(const typename pcl::PointCloud<DescriptorType>::ConstPtr &descriptors, std::vector<double> &class_probabilities);
 
 private:
-    std::vector<Object_Model<DescriptorType> > objects_model_;
+    std::vector<std::vector<Object_Model<DescriptorType> > > objects_model_;
+
+    void geometricCorrespondences(const typename pcl::PointCloud<DescriptorType>::ConstPtr &test_descriptors,
+                                  const typename pcl::PointCloud<DescriptorType>::ConstPtr &model_descriptors,
+                                  pcl::CorrespondencesPtr &correspondences);
 
     int getCorrespondences(const typename pcl::PointCloud<DescriptorType>::ConstPtr &test_descriptors,
                            const typename pcl::PointCloud<DescriptorType>::ConstPtr &model_descriptors);
@@ -40,28 +46,101 @@ Feature_Matching_3D<DescriptorExtractor, DescriptorType>::Feature_Matching_3D()
 }
 
 template<typename DescriptorExtractor, typename DescriptorType>
-std::string Feature_Matching_3D<DescriptorExtractor, DescriptorType>::match(const typename pcl::PointCloud<DescriptorType>::ConstPtr &descriptors)
+void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::match(const typename pcl::PointCloud<DescriptorType>::ConstPtr &descriptors,
+                                                                            std::vector<double> &class_probabilities)
 {
-    // ** Matching with model
-    int max_correspondences = 0;
-    std::string best_model;
+    class_probabilities.resize(objects_model_.size()+1); // The last one is the "other objects" category
 
-    for(unsigned int i = 0; i < objects_model_.size(); ++i)
+    double p_sum = 0;
+    for(std::size_t i = 0; i < objects_model_.size(); ++i)
     {
-        int n_correspondences = getCorrespondences(descriptors, objects_model_[i].descriptors_);
-        std::cout << "Model "<<objects_model_[i].name_ <<": "<<n_correspondences << " correspondences"<<std::endl;
-        if(n_correspondences > max_correspondences)
+        const std::vector<Object_Model<DescriptorType> > &class_model = objects_model_[i];
+        double max_prob = 0.0;
+
+        for(std::size_t j = 0; j < class_model.size(); ++j)
         {
-            max_correspondences = n_correspondences;
-            best_model = objects_model_[i].name_;
+//            pcl::CorrespondencesPtr correspondences(new pcl::Correspondences);
+//            geometricCorrespondences(descriptors, class_model[j].descriptors_, correspondences);
+//            int n_correspondences = correspondences->size();
+            int n_correspondences = getCorrespondences(descriptors, class_model[j].descriptors_);
+
+            double probability = (double)n_correspondences / descriptors->size();
+
+            if(probability > max_prob)
+            {
+                max_prob = probability;
+                class_probabilities[i] = max_prob;
+            }
+        }
+        std::cout << "Prob "<<class_model[0].name_<<": "<<class_probabilities[i]<<std::endl;
+        p_sum += class_probabilities[i];
+    }
+
+    // ** Compute "others" probability. If the models have a really big probability,
+    // the result will be < 0 and we can assume that the probability of "other" is 0.
+    // If we are not so about the models sure, though, the value will be > 0 and therefore
+    // we will have a non-zero weight for the "other" category
+    class_probabilities[class_probabilities.size()-1] = std::max(1.0 - p_sum,0.0);
+    p_sum +=class_probabilities[class_probabilities.size()-1];
+
+    // ** Normalize probabilities
+    for(std::size_t i = 0; i < class_probabilities.size(); ++i)
+    {
+        class_probabilities[i] /= p_sum;
+//        std::cout << "Prob "<<i<<": "<<class_probabilities[i]<<std::endl;
+    }
+}
+
+template<typename DescriptorExtractor, typename DescriptorType>
+void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::geometricCorrespondences(const typename pcl::PointCloud<DescriptorType>::ConstPtr &test_descriptors,
+                                                                                        const typename pcl::PointCloud<DescriptorType>::ConstPtr &model_descriptors,
+                                                                                        pcl::CorrespondencesPtr &correspondences)
+{
+    // ** Correspondence extraction
+    pcl::CorrespondencesPtr correspondences_tmp(new pcl::Correspondences);
+    pcl::search::KdTree<DescriptorType> match_search;
+    match_search.setInputCloud(model_descriptors);
+
+    double min_distance = std::numeric_limits<double>::infinity();
+    //  For each scene keypoint descriptor, find nearest neighbor into the model keypoints descriptor cloud and add it to the correspondences vector.
+    for (size_t i = 0; i < test_descriptors->size (); ++i)
+    {
+        std::vector<int> neigh_indices (1);
+        std::vector<float> neigh_sqr_dists (1);
+        int found_neighs = match_search.nearestKSearch (test_descriptors->at(i), 1, neigh_indices, neigh_sqr_dists);
+        if(found_neighs == 1 )//&& neigh_sqr_dists[0] < 0.25f) //
+        {
+            if(neigh_sqr_dists[0] < min_distance)
+                min_distance = neigh_sqr_dists[0];
+
+            pcl::Correspondence corr (neigh_indices[0], static_cast<int> (i), neigh_sqr_dists[0]);
+            correspondences_tmp->push_back (corr);
         }
     }
-    std::cout << "Matching: "<< max_correspondences << " correspondences." << std::endl;
-    if(max_correspondences < MIN_N_CORRESPONDENCES)
-        best_model = "";
-    // ** Output result
-    return best_model;
+
+    // ** Filter correspondences too far away
+    for(std::size_t i = 0; i < correspondences_tmp->size(); ++i)
+    {
+        const pcl::Correspondence &corr = correspondences_tmp->at(i);
+        if(corr.distance < 3 * min_distance)
+        {
+            correspondences->push_back(corr);
+        }
+    }
+
+    // ** Correspondence Grouping
+//    pcl::GeometricConsistencyGrouping<pcl::PointXYZRGB, pcl::PointXYZRGB> gc_clusterer;
+//    gc_clusterer.setGCSize (cg_size_);
+//    gc_clusterer.setGCThreshold (cg_thresh_);
+
+//    gc_clusterer.setInputCloud (model_keypoints);
+//    gc_clusterer.setSceneCloud (scene_keypoints);
+//    gc_clusterer.setModelSceneCorrespondences (model_scene_corrs);
+
+//    //gc_clusterer.cluster (clustered_corrs);
+//    gc_clusterer.recognize (rototranslations, clustered_corrs);
 }
+
 
 
 template<typename DescriptorExtractor, typename DescriptorType>
@@ -75,6 +154,7 @@ int Feature_Matching_3D<DescriptorExtractor, DescriptorType>::getCorrespondences
     one_way_correspondences(test_descriptors, model_descriptors, src2tgt);
     one_way_correspondences(model_descriptors, test_descriptors, tgt2src);
 
+//    std::cout << "Correspondences: "<<src2tgt.size()<<","<<tgt2src.size()<<std::endl;
     // ** First filtering
     pcl::CorrespondencesPtr correspondences_ (new pcl::Correspondences);
 
@@ -169,6 +249,8 @@ void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::load_object_model
     DIR *dir;
     struct dirent *ent;
     const char* path_c = path.c_str();
+    std::vector<Object_Model<DescriptorType> > class_models;
+
     if((dir = opendir(path_c)) != NULL)
     {
         // ** Read entities (files or folders) and process folders only
@@ -178,13 +260,15 @@ void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::load_object_model
             {
                 std::string model_path = path + ent->d_name;
                 typename pcl::PointCloud<DescriptorType>::Ptr descriptors (new pcl::PointCloud<DescriptorType>);
+
                 if(pcl::io::loadPCDFile(model_path, *descriptors) != 0)
                     ROS_ERROR("Error reading PCD file");
                 std::cout << "Pointcloud: "<<descriptors->size()<<std::endl;
                 Object_Model<DescriptorType> obj(model_name, descriptors);
-                objects_model_.push_back(obj);
+                class_models.push_back(obj);
             }
         }
+        objects_model_.push_back(class_models);
     }
     else
     {

@@ -57,19 +57,19 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     color_classifier_.classify(hsv_img, color_mask, color_classes, color_probabilities);
 
 //    // ** Compute probabilities for every object
-//    std::vector<double> object_probabilities;
-//    object_probabilities[OBJECT_IDX_RED_CUBE]       = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_RED];
-//    object_probabilities[OBJECT_IDX_BLUE_CUBE]      = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_BLUE];
-//    object_probabilities[OBJECT_IDX_GREEN_CUBE]     = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_GREEN];
-//    object_probabilities[OBJECT_IDX_YELLOW_CUBE]    = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_YELLOW];
+    std::vector<double> object_probabilities;
+    object_probabilities[OBJECT_IDX_RED_CUBE]       = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_RED];
+    object_probabilities[OBJECT_IDX_BLUE_CUBE]      = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_BLUE];
+    object_probabilities[OBJECT_IDX_GREEN_CUBE]     = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_GREEN];
+    object_probabilities[OBJECT_IDX_YELLOW_CUBE]    = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_YELLOW];
 
-//    object_probabilities[OBJECT_IDX_YELLOW_BALL]    = shape_probabilities[SHAPE_3D_BALL] * color_probabilities[COLOR_YELLOW];
-//    object_probabilities[OBJECT_IDX_RED_BALL]       = shape_probabilities[SHAPE_3D_BALL] * color_probabilities[COLOR_RED];
+    object_probabilities[OBJECT_IDX_YELLOW_BALL]    = shape_probabilities[SHAPE_3D_BALL] * color_probabilities[COLOR_YELLOW];
+    object_probabilities[OBJECT_IDX_RED_BALL]       = shape_probabilities[SHAPE_3D_BALL] * color_probabilities[COLOR_RED];
 
-//    object_probabilities[OBJECT_IDX_GREEN_CYLINDER] = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_GREEN];
-//    object_probabilities[OBJECT_IDX_BLUE_TRIANGLE]  = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_BLUE];
-//    object_probabilities[OBJECT_IDX_PURPLE_CROSS]   = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_PURPLE];
-//    object_probabilities[OBJECT_IDX_PATRIC]         = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_RED];
+    object_probabilities[OBJECT_IDX_GREEN_CYLINDER] = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_GREEN];
+    object_probabilities[OBJECT_IDX_BLUE_TRIANGLE]  = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_BLUE];
+    object_probabilities[OBJECT_IDX_PURPLE_CROSS]   = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_PURPLE];
+    object_probabilities[OBJECT_IDX_PATRIC]         = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_RED];
 
 //    // ** Pick the most likely
 //    double max_p = 0.0;

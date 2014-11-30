@@ -215,9 +215,13 @@ void Vision_Training::process_model_folder(std::string path)
 {
     // Empty descriptors folder
     std::string descriptors_folder = path + "/descriptors/";
+    std::string keypoints_folder =   path + "/keypoints/";
 
     boost::filesystem::remove_all(descriptors_folder); // This also removes the /raw/ folder
     boost::filesystem::create_directory(descriptors_folder); // Re-create it
+
+    boost::filesystem::remove_all(keypoints_folder); // This also removes the /raw/ folder
+    boost::filesystem::create_directory(keypoints_folder); // Re-create it
 
     DIR *dir;
     struct dirent *ent;
@@ -236,7 +240,7 @@ void Vision_Training::process_model_folder(std::string path)
                 std::string cloud_path = path + "/raw/" + f_name;
                 std::string f_name_no_ext = f_name.substr(0, f_name.length()-4);
                 std::string desc_name = descriptors_folder+f_name_no_ext + "_desc.pcd";
-//                std::string keypoint_name = descriptors_folder+f_name_no_ext + "_kpts.pcd";
+                std::string keypoint_name = keypoints_folder+f_name_no_ext + "_kpts.pcd";
 
                 std::cout << "\t Saving into "<<desc_name << std::endl;
 
@@ -254,7 +258,7 @@ void Vision_Training::process_model_folder(std::string path)
 
                 // Save descriptors
                 pcl::io::savePCDFile(desc_name, *descriptors);
-//                pcl::io::savePCDFile(keypoint_name, *keypoints);
+                pcl::io::savePCDFile(keypoint_name, *keypoints);
             }
         }
     }

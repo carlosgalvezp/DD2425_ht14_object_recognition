@@ -19,9 +19,9 @@ void detectRyan (const cv::Mat &image)
 
         //for detection
         int hue_low, hue_high;
-        int hue_low_blue =10, hue_low_red =110, hue_low_green =50, hue_low_purple =140, hue_low_yellow =90;
-        int hue_high_blue=30, hue_high_red=130, hue_high_green=70, hue_high_purple=170, hue_high_yellow=100;
-        int sat_low=100, sat_high=255, bright_low=150, bright_high=255;
+        int hue_low_blue =10, hue_low_red =110, hue_low_green =60, hue_low_purple =140, hue_low_yellow =90;
+        int hue_high_blue=30, hue_high_red=130, hue_high_green=80, hue_high_purple=170, hue_high_yellow=100;
+        int sat_low=100, sat_high=255, bright_low=100, bright_high=255;
 
         int purple=0, red=0, green=0, blue=0, yellow=0; //how many times have the algorithm detected a color
         int max_contour_pixles=2000;
@@ -31,6 +31,7 @@ void detectRyan (const cv::Mat &image)
 
     //Mat image = imread("/home/ras/Brain2/build/yellowball.png", CV_LOAD_IMAGE_ANYCOLOR);
     //Mat image = imread("/home/ras/Brain2/build/redball.png", CV_LOAD_IMAGE_ANYCOLOR);
+        cvtColor(image,image,CV_BGR2RGB);
 
     if (image.empty())
     {
@@ -48,7 +49,7 @@ void detectRyan (const cv::Mat &image)
 
           Mat image_modified_lightning;
 
-          for(double i = 1; i < 7; i++){
+          for(double i = 1; i < 15; i++){
 
                 image_modified_lightning = image*(i/10+0.7);cout<<"lightning condition: lightX"<< (i/10+0.7)<<endl; //lightning factor 0.8-1.8
 
@@ -181,13 +182,11 @@ void detectRyan (const cv::Mat &image)
     cout <<"...We are "<<belief<<"% sure of it!"<<endl;
     }
 
-//imshow("Input Raw Image", image);
+cout << "PROGRAM FINISHED"<<endl;
+imshow("Input Raw Image", image);
 cv::waitKey();
 
-    cout << "PROGRAM FINISHED"<<endl;
-
     imshow("Input Raw Image", image);
-    waitKey(0);
     destroyAllWindows();
 
 }//end of function

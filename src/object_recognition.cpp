@@ -21,7 +21,8 @@ Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub, const Eige
 
 bool Object_Recognition::classify(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask, std::string &result)
 {
-    classifyCarlos(bgr_img, depth_img, color_mask, result);
+//    classifyCarlos(bgr_img, depth_img, color_mask, result);
+    detectRyan(bgr_img);
     return false;
 }
 

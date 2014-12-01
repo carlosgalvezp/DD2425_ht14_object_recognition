@@ -2,6 +2,11 @@
 
 Object_Recognition::Object_Recognition()
 {
+}
+
+Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub, const Eigen::Matrix4f &t_cam_to_robot)
+    : pcl_pub_(pcl_pub), t_cam_to_robot_(t_cam_to_robot)
+{
     object_names = {OBJECT_NAME_RED_CUBE,
                     OBJECT_NAME_BLUE_CUBE,
                     OBJECT_NAME_GREEN_CUBE,
@@ -15,13 +20,11 @@ Object_Recognition::Object_Recognition()
                     OBJECT_NAME_UNKNOWN};
 }
 
-Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub, const Eigen::Matrix4f &t_cam_to_robot)
-    : pcl_pub_(pcl_pub), t_cam_to_robot_(t_cam_to_robot){}
-
 
 bool Object_Recognition::classify(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask, std::string &result)
 {
     classifyCarlos(bgr_img, depth_img, color_mask, result);
+//    detectRyan(bgr_img);
     return false;
 }
 
@@ -38,6 +41,7 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     PCL_Utils::buildPointCloud(rgb_masked, depth_masked, object_cloud, 0.25);
     pcl::transformPointCloud(*object_cloud, *object_cloud, t_cam_to_robot_);
     pcl_pub_.publish(object_cloud);
+
 //    pcl::io::savePCDFile("/home/carlos/3d_data/test/my_test.pcd", *object_cloud);
 //    std::cout << "SAVED FILE"<<std::endl;
 //    cv::namedWindow("");
@@ -48,8 +52,8 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     classifier3D_.recognize(object_cloud, shape_probabilities);
 
     // ** Call Color Bayes Classifier
-    std::vector<double> color_probabilities;
     std::vector<int> color_classes{COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW, COLOR_PURPLE};
+    std::vector<double> color_probabilities(color_classes.size());
 
     cv::Mat hsv_img;
     cv::cvtColor(bgr_img, hsv_img, CV_BGR2HSV);
@@ -57,7 +61,7 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     color_classifier_.classify(hsv_img, color_mask, color_classes, color_probabilities);
 
 //    // ** Compute probabilities for every object
-    std::vector<double> object_probabilities;
+    std::vector<double> object_probabilities(10);
     object_probabilities[OBJECT_IDX_RED_CUBE]       = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_RED];
     object_probabilities[OBJECT_IDX_BLUE_CUBE]      = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_BLUE];
     object_probabilities[OBJECT_IDX_GREEN_CUBE]     = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_GREEN];
@@ -71,15 +75,17 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     object_probabilities[OBJECT_IDX_PURPLE_CROSS]   = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_PURPLE];
     object_probabilities[OBJECT_IDX_PATRIC]         = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_RED];
 
-//    // ** Pick the most likely
-//    double max_p = 0.0;
-//    for(std::size_t i = 0; i < object_probabilities.size(); ++i)
-//    {
-//        double p = object_probabilities[i];
-//        if(p > max_p)
-//        {
-//            max_p = p;
-//            result = this->object_names[i];
-//        }
-//    }
+    // ** Pick the most likely
+    double max_p = 0.0;
+    for(std::size_t i = 0; i < object_probabilities.size(); ++i)
+    {
+        double p = object_probabilities[i];
+        if(p > max_p)
+        {
+            max_p = p;
+            result = this->object_names[i];
+        }
+    }
+    std::cout << "======= CLASSIFICATION RESULT: "<<result<<" =========="<<std::endl;
+    return true;
 }

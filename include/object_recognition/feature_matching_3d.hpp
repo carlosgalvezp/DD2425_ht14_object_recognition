@@ -13,6 +13,8 @@
 #include <pcl/recognition/cg/geometric_consistency.h>
 #define MIN_N_CORRESPONDENCES 10
 
+#define P_RATIO_TH  10
+
 template<typename DescriptorExtractor, typename DescriptorType>
 class Feature_Matching_3D
 {
@@ -76,13 +78,16 @@ void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::match(const typen
         p_sum += class_probabilities[i];
     }
 
-    // ** Compute "others" probability. If the models have a really big probability,
-    // the result will be < 0 and we can assume that the probability of "other" is 0.
-    // If we are not so about the models sure, though, the value will be > 0 and therefore
-    // we will have a non-zero weight for the "other" category
-    class_probabilities[class_probabilities.size()-1] = std::max(1.0 - p_sum,0.0);
-    p_sum +=class_probabilities[class_probabilities.size()-1];
+    // ** Compute "others" probability
+    double p_ratio = class_probabilities[0] / class_probabilities[1];
+    double p_others;
+    if(std::max(p_ratio, 1.0/p_ratio) > P_RATIO_TH) // It's really a cube or a ball
+        p_others = std::min(class_probabilities[0], class_probabilities[1]);
+    else
+        p_others = 4.0/10.0; // Prior probability
 
+    class_probabilities[class_probabilities.size()-1] = p_others;
+    p_sum += p_others;
     // ** Normalize probabilities
     for(std::size_t i = 0; i < class_probabilities.size(); ++i)
     {

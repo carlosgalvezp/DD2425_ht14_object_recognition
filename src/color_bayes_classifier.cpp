@@ -87,6 +87,7 @@ void Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mas
     for(std::size_t i = 0; i < color_probabilities.size(); ++i)
     {
         color_probabilities[i] /= sum_p;
+        std::cout << "Color prob: "<<color_probabilities[i]<<std::endl;
     }
 }
 

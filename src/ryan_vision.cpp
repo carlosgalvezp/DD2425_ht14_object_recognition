@@ -1,6 +1,166 @@
 #include <object_recognition/ryan_vision.h>
 
 
+//SQUARE DETECTION
+
+    ///////////////////////////////////////
+    ////      HOW THIS CODE WORKS        //
+    ///////////////////////////////////////
+
+    // 1)use canny method to find lines
+    // 2)approximation of lines to make all lines intersect
+    // 3)find intersection points and calculate intersection angle
+    // 4)find rectangles
+
+
+    //////////////////////////////////////
+    ////      PARAMETERS TO TUNE        //
+    //////////////////////////////////////
+
+    int thresh = 600, N = 20;  //initial canny old to find lines, between 600-800 works best, N is iteration times with small change in grayscale value
+    double cosinethreshold=0.7; //fight against not exact 90 degrees intersection, 0.1 means almost 90degree intersections.
+    //Mat image = imread("/home/ras/shape_detector_working/square_detection_working/build/Test/frame0001.png", CV_LOAD_IMAGE_ANYCOLOR);
+    //Mat image = imread("/home/ras/shape_detector_working/square_detection_working/build/all_color_squares/frame0011.jpg", CV_LOAD_IMAGE_ANYCOLOR);
+    //Mat image = imread("/home/ras/shape_detector_working/square_detection_working/build/vision_data_img.2/blue_triangle/blue_triangle_RGB_2.png", CV_LOAD_IMAGE_ANYCOLOR);
+
+
+    int contour_pixel_min = 2500; //2500
+    int contour_pixel_max = 3500; //4000
+
+    int foundtimes=0;
+
+///////////////////////////////////////////////////
+//       Intersection points (used later)        //
+///////////////////////////////////////////////////
+
+ //from pt0->pt1 and from pt0->pt2
+
+static double angle( Point pt1, Point pt2, Point pt0 )
+{
+double dx1 = pt1.x - pt0.x;
+double dy1 = pt1.y - pt0.y;
+double dx2 = pt2.x - pt0.x;
+double dy2 = pt2.y - pt0.y;
+return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
+}
+
+/////////////////////////////////////////////////////////////////
+//   Use canny and findcontour functions to find lines         //
+/////////////////////////////////////////////////////////////////
+
+static void findSquares( const Mat& image, vector<vector<Point> >& squares )
+{
+
+    Mat down, up, gray0(image.size(), CV_8U), canny_output; Mat img_contours(image.size(), CV_8U);
+
+    // down-scale and upscale the image to filter out the noise
+    pyrDown(image, down, Size(image.cols/2, image.rows/2));
+    pyrUp(down, up, image.size());
+
+
+// find squares in every color plane of the image
+for( int c = 0; c < 3; c++ )
+        {
+    Mat channel[3];
+    split(up, channel);
+
+        if (c==0){gray0=channel[0];}
+        if (c==1){gray0=channel[1];}
+        if (c==2){gray0=channel[2];}
+
+        for( int l = 0; l < N; l++ )
+        {
+            if( l == 0 )
+                {
+                Canny(gray0, canny_output, 0, thresh, 5);  //find edges
+
+
+            }
+            else
+                {
+                canny_output = gray0 >= (l+1)*255/N;  //change intensity values of edges
+                dilate(canny_output, canny_output, Mat(), Point(-1,-1),2);
+                erode(canny_output, canny_output, Mat(), Point(-1,-1),2);
+                //imshow("gray", gray0);
+                //waitKey(0);
+
+                //imshow("canny", canny_output);
+                //waitKey(0);
+            }
+
+        vector<vector<Point> > contours;
+        findContours(canny_output, contours, RETR_LIST, CHAIN_APPROX_SIMPLE);
+
+        //cout<<"there are "<<contours.size()<< " contours in this image"<<endl;
+
+
+        drawContours(img_contours,contours,-1,255,1);
+        //imshow("All contours",img_contours);
+        //waitKey(0);
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Approximate the lines to make them intersect, check contours area and intersection angle (cosine value) to identify rectangles //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        vector<Point> approx;
+
+        for( int i = 0; i < contours.size(); i++ )  // test each contour
+        {
+
+        approxPolyDP(Mat(contours[i]), approx, arcLength(Mat(contours[i]), true)*0.02, true);// approximate contour with accuracy proportional
+                                                                                             // to the contour perimeter, 0,02 works on squares
+
+
+        // square contours should have 4 vertices after approximation
+        // relatively large area (to filter out noisy contours)
+
+        // Note: absolute value of an area is used because
+        // area may be positive or negative - in accordance with the
+        // contour orientation
+
+        if( approx.size() == 4 && fabs(contourArea(Mat(approx))) > contour_pixel_min && fabs(contourArea(Mat(approx))) < contour_pixel_max  )// and be convex. && isContourConvex(Mat(approx))
+        {
+            foundtimes++;
+
+        double maxCosine = 0;
+            for( int j = 2; j < 5; j++ )
+            {
+        // find the maximum cosine of the angle between joint edges
+            double cosine = fabs(angle(approx[j%4], approx[j-2], approx[j-1]));
+            maxCosine = MAX(maxCosine, cosine);
+            }
+        // if cosines of all angles are small
+        // (all angles are ~90 degree) then write quandrange
+        // vertices to resultant sequence
+        if( maxCosine < cosinethreshold )
+
+        squares.push_back(approx);
+        }
+
+    }
+}
+}
+}
+
+///////////////////////////////////////////////////////
+//      Draws all the squares in the image           //
+///////////////////////////////////////////////////////
+
+static void drawSquares( Mat& image, const vector<vector<Point> >& squares )
+{
+for( size_t i = 0; i < squares.size(); i++ )
+    {
+    const Point* p = &squares[i][0];
+    int n = (int)squares[i].size();
+    polylines(image, &p, &n, 1, true, Scalar(0,255,0), 1);
+
+    }
+
+
+imshow("Result", image);
+}
+
 void detectRyan (const cv::Mat &image)
 {
 
@@ -190,5 +350,44 @@ cv::waitKey();
     waitKey(0);
     destroyAllWindows();
 
-}//end of function
+
+
+
+
+//SQUARE DETECTION
+
+    //////////////////////////
+    //        Main          //
+    //////////////////////////
+
+
+
+
+    if( image.empty() )
+    {
+        cout << "Couldn't load " << endl;
+    }
+
+    double j=1;
+    Mat image_modified_lightning;
+
+    for (j=1;j<15;j++)
+    {image_modified_lightning=image*(j/5+0.6);cout<<"lightning condition: lightX"<< (j/5+0.6)<<endl; //lightning factors.
+
+        vector<vector<Point> > squares;
+        foundtimes=0;
+        findSquares(image_modified_lightning, squares);  //call find square function
+        drawSquares(image_modified_lightning, squares);  //call draw square function
+        cout<<"Found sqaures "<<foundtimes<<" times"<<endl;
+        waitKey(0);
+    }
+
+
+    waitKey(0);
+
+
+    }
+
+
+
 

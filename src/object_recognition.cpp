@@ -50,8 +50,9 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     // ** Call 3D recognition
     std::vector<double> shape_probabilities(3);
     classifier3D_.recognize_vfh(object_cloud, shape_probabilities);
+
     // Compute p(others) as 1.0 - n_3D_points / N_color_points (small number when concave)
-    double p_others = 1.0 - object_cloud->size() / cv::countNonZero(color_mask);
+    double p_others = 1.0 - (double)object_cloud->size() / (double)(cv::countNonZero(color_mask)*(0.25*0.25));
     shape_probabilities[shape_probabilities.size()-1] = p_others;
 
     // Normalize

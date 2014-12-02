@@ -36,8 +36,6 @@ void Color_Bayes_Classifier::read_models()
 void Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mask, const std::vector<int> &color_classes,
                                       std::vector<double> &color_probabilities)
 {
-    cv::imshow("HSV_IMG", hsv_img);
-    cv::imshow("MASK", mask);
     color_probabilities.resize(color_classes.size());
 
     // **  Create pixel counters
@@ -87,7 +85,6 @@ void Color_Bayes_Classifier::classify(const cv::Mat &hsv_img, const cv::Mat &mas
     for(std::size_t i = 0; i < color_probabilities.size(); ++i)
     {
         color_probabilities[i] /= sum_p;
-        std::cout << "Color prob: "<<color_probabilities[i]<<std::endl;
     }
 }
 

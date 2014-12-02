@@ -26,7 +26,7 @@ using namespace cv;
 using namespace std;
 
 
-void detectRyan (const cv::Mat &image);
+void visionRyan (const cv::Mat &image);
 
 
 #endif // RYAN_VISION_H

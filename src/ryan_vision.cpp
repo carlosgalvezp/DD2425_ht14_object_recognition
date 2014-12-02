@@ -1,39 +1,25 @@
 #include <object_recognition/ryan_vision.h>
 
+////////////////////////////////////////////
+//             Parameters                 //
+////////////////////////////////////////////
 
-//SQUARE DETECTION
+    //for detection
+    int hue_low, hue_high;
+    int hue_low_blue =5, hue_low_red =110, hue_low_green =50, hue_low_purple =140, hue_low_yellow =90;
+    int hue_high_blue=25, hue_high_red=130, hue_high_green=85, hue_high_purple=170, hue_high_yellow=100;
+    int sat_low=100, sat_high=255, bright_low=100, bright_high=255;
 
-    ///////////////////////////////////////
-    ////      HOW THIS CODE WORKS        //
-    ///////////////////////////////////////
+    int purple=0, red=0, green=0, blue=0, yellow=0; //how many times have the algorithm detected a color
+    int max_contour_pixles=2000;
+    int color_idx=5; //1-purple, 2-red, 3-green, 4-blue, 5-yellow
+    int contour_min = 50, contour_max = 200;   //a perfect square is 75
 
-    // 1)use canny method to find lines
-    // 2)approximation of lines to make all lines intersect
-    // 3)find intersection points and calculate intersection angle
-    // 4)find rectangles
-
-
-    //////////////////////////////////////
-    ////      PARAMETERS TO TUNE        //
-    //////////////////////////////////////
-
+    //for recognition
     int thresh = 600, N = 20;  //initial canny old to find lines, between 600-800 works best, N is iteration times with small change in grayscale value
-    double cosinethreshold=0.7; //fight against not exact 90 degrees intersection, 0.1 means almost 90degree intersections.
-    //Mat image = imread("/home/ras/shape_detector_working/square_detection_working/build/Test/frame0001.png", CV_LOAD_IMAGE_ANYCOLOR);
-    //Mat image = imread("/home/ras/shape_detector_working/square_detection_working/build/all_color_squares/frame0011.jpg", CV_LOAD_IMAGE_ANYCOLOR);
-    //Mat image = imread("/home/ras/shape_detector_working/square_detection_working/build/vision_data_img.2/blue_triangle/blue_triangle_RGB_2.png", CV_LOAD_IMAGE_ANYCOLOR);
-
-
-    int contour_pixel_min = 2500; //2500
-    int contour_pixel_max = 3500; //4000
-
+    double cosinethreshold=0.3; //fight against not exact 90 degrees intersection, 0.1 means almost 90degree intersections.
+    int contour_pixel_min = 1500, contour_pixel_max = 3500;
     int foundtimes=0;
-
-///////////////////////////////////////////////////
-//       Intersection points (used later)        //
-///////////////////////////////////////////////////
-
- //from pt0->pt1 and from pt0->pt2
 
 static double angle( Point pt1, Point pt2, Point pt0 )
 {
@@ -43,10 +29,6 @@ double dx2 = pt2.x - pt0.x;
 double dy2 = pt2.y - pt0.y;
 return (dx1*dx2 + dy1*dy2)/sqrt((dx1*dx1 + dy1*dy1)*(dx2*dx2 + dy2*dy2) + 1e-10);
 }
-
-/////////////////////////////////////////////////////////////////
-//   Use canny and findcontour functions to find lines         //
-/////////////////////////////////////////////////////////////////
 
 static void findSquares( const Mat& image, vector<vector<Point> >& squares )
 {
@@ -143,10 +125,6 @@ for( int c = 0; c < 3; c++ )
 }
 }
 
-///////////////////////////////////////////////////////
-//      Draws all the squares in the image           //
-///////////////////////////////////////////////////////
-
 static void drawSquares( Mat& image, const vector<vector<Point> >& squares )
 {
 for( size_t i = 0; i < squares.size(); i++ )
@@ -154,46 +132,12 @@ for( size_t i = 0; i < squares.size(); i++ )
     const Point* p = &squares[i][0];
     int n = (int)squares[i].size();
     polylines(image, &p, &n, 1, true, Scalar(0,255,0), 1);
-
     }
-
-
 imshow("Result", image);
 }
 
-void detectRyan (const cv::Mat &image)
-{
-
-    ////////////////////////////////////////////////
-    //          How this code work                //
-    ////////////////////////////////////////////////
-
-//1) load original image and convert to HSV image with different lightning condition
-//2) for each HSV masked image find a farily large contour
-//3) check if we have exatcly one contour left and calculate probability of finding an object
-
-
-    ////////////////////////////////////////////
-    //             Parameters                 //
-    ////////////////////////////////////////////
-
-        //for detection
-        int hue_low, hue_high;
-        int hue_low_blue =10, hue_low_red =110, hue_low_green =60, hue_low_purple =140, hue_low_yellow =90;
-        int hue_high_blue=30, hue_high_red=130, hue_high_green=80, hue_high_purple=170, hue_high_yellow=100;
-        int sat_low=100, sat_high=255, bright_low=100, bright_high=255;
-
-        int purple=0, red=0, green=0, blue=0, yellow=0; //how many times have the algorithm detected a color
-        int max_contour_pixles=2000;
-        int color_idx=5; //1-purple, 2-red, 3-green, 4-blue, 5-yellow
-        int contour_min = 50, contour_max = 200;   //a perfect square is 75
-
-
-    //Mat image = imread("/home/ras/Brain2/build/yellowball.png", CV_LOAD_IMAGE_ANYCOLOR);
-    //Mat image = imread("/home/ras/Brain2/build/redball.png", CV_LOAD_IMAGE_ANYCOLOR);
-        cvtColor(image,image,CV_BGR2RGB);
-
-    if (image.empty())
+static void detect(const cv::Mat &image)
+{    if (image.empty())
     {
         cout << "Error : Image cant be loaded..!!" << endl;
     }
@@ -312,6 +256,42 @@ void detectRyan (const cv::Mat &image)
 
         }//end of one color index
 
+
+cout << "DETECTION FINISHED"<<endl;
+imshow("Input Raw Image", image);
+ cv::waitKey();
+}
+
+//Main
+void visionRyan (const cv::Mat &image)
+{
+
+    cvtColor(image,image,CV_BGR2RGB);
+
+//COLOR DETECTION
+    detect(image);
+
+//SQUARE RECOGNITION
+
+    Mat image_modified_lightning;
+    int foundtimes_max=0;
+    int j_max=10; //how many light conditions
+
+    for (double j=1;j<j_max;j++)//different light conditions
+    {image_modified_lightning=image*(j/5+0.6);cout<<"lightning condition: lightX"<< (j/5+0.6)<<endl; //lightning factors.
+
+        vector<vector<Point> > squares;
+        foundtimes=0;
+        findSquares(image_modified_lightning, squares);  //call find square function
+        //cout<<"Found sqaures "<<foundtimes<<" times"<<endl;
+        if(foundtimes>foundtimes_max){foundtimes_max=foundtimes;drawSquares(image_modified_lightning, squares);  //call draw square function
+} //update foundtimes max
+        //waitKey(0);
+    }
+
+    cout << "SQUARE RECOGNITION FINISHED"<<endl<<"We found squares at maximum "<<foundtimes_max<< "times per light condition"<<endl;
+
+//RESULT
     //find color that appears the most
     int biggestvalue=0;
     if (purple>biggestvalue){biggestvalue=purple;}
@@ -327,7 +307,6 @@ void detectRyan (const cv::Mat &image)
     cout<<"yellow: "<<yellow<<" times"<<endl;
     cout<<"Biggestvalue is: "<<biggestvalue<<endl;
 
-
     //percentage of belief
     double belief;
     if (biggestvalue==0){belief=0;}
@@ -342,50 +321,14 @@ void detectRyan (const cv::Mat &image)
     cout <<"...We are "<<belief<<"% sure of it!"<<endl;
     }
 
-cout << "PROGRAM FINISHED"<<endl;
-imshow("Input Raw Image", image);
-cv::waitKey();
+    double belief_square;
+    belief_square=(100*foundtimes_max/(3*j_max));
+    if (foundtimes_max>0){cout<<"Found SQUARE!"<<endl<<"...We are "<<belief_square<<"% sure of it!"<<endl;}
 
-    imshow("Input Raw Image", image);
+    cv::waitKey();
     destroyAllWindows();
+}
 
-
-
-
-
-//SQUARE DETECTION
-
-    //////////////////////////
-    //        Main          //
-    //////////////////////////
-
-
-
-
-    if( image.empty() )
-    {
-        cout << "Couldn't load " << endl;
-    }
-
-    double j=1;
-    Mat image_modified_lightning;
-
-    for (j=1;j<15;j++)
-    {image_modified_lightning=image*(j/5+0.6);cout<<"lightning condition: lightX"<< (j/5+0.6)<<endl; //lightning factors.
-
-        vector<vector<Point> > squares;
-        foundtimes=0;
-        findSquares(image_modified_lightning, squares);  //call find square function
-        drawSquares(image_modified_lightning, squares);  //call draw square function
-        cout<<"Found sqaures "<<foundtimes<<" times"<<endl;
-        waitKey(0);
-    }
-
-
-    waitKey(0);
-
-
-    }
 
 
 

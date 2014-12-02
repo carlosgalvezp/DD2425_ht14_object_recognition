@@ -4,6 +4,7 @@
 #include <object_recognition/object_model_3d.hpp>
 #include <ras_utils/ras_utils.h>
 #include <dirent.h>
+#include <object_recognition/vfh_recognition.h>
 // PCL
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -21,9 +22,11 @@ class Feature_Matching_3D
 public:
     Feature_Matching_3D();
     void match(const typename pcl::PointCloud<DescriptorType>::ConstPtr &descriptors, std::vector<double> &class_probabilities);
-
+    void match_vfh(const pcl::PointCloud<pcl::VFHSignature308>::ConstPtr &descriptors,
+                                              std::vector<double> &class_probabilities);
 private:
     std::vector<std::vector<Object_Model<DescriptorType> > > objects_model_;
+    std::vector<std::vector<Object_Model<pcl::VFHSignature308> > > objects_model_vfh_;
 
     void geometricCorrespondences(const typename pcl::PointCloud<DescriptorType>::ConstPtr &test_descriptors,
                                   const typename pcl::PointCloud<DescriptorType>::ConstPtr &model_descriptors,
@@ -36,6 +39,8 @@ private:
                                  std::vector<int>& correspondences);
     void load_models();
     void load_object_model(const std::string &path, const std::string &model_name);
+
+    VFH_Recognition vfh_recognition_;
 };
 
 
@@ -93,6 +98,28 @@ void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::match(const typen
     {
         class_probabilities[i] /= p_sum;
 //        std::cout << "Prob "<<i<<": "<<class_probabilities[i]<<std::endl;
+    }
+}
+
+template<typename DescriptorExtractor, typename DescriptorType>
+void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::match_vfh(const pcl::PointCloud<pcl::VFHSignature308>::ConstPtr &descriptors,
+                                                                                        std::vector<double> &class_probabilities)
+{
+    class_probabilities.resize(objects_model_vfh_.size() +1);
+    for(std::size_t i = 0; i < objects_model_vfh_.size(); ++i)
+    {
+        const std::vector<Object_Model<pcl::VFHSignature308> > &class_model = objects_model_vfh_[i];
+        double max_prob = 0.0;
+
+        for(std::size_t j = 0; j < class_model.size(); ++j)
+        {
+            double probability = vfh_recognition_.matchDescriptor(descriptors, class_model[j].descriptors_);
+            if(probability > max_prob)
+            {
+                max_prob = probability;
+                class_probabilities[i] = max_prob;
+            }
+        }
     }
 }
 
@@ -254,7 +281,8 @@ void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::load_object_model
     DIR *dir;
     struct dirent *ent;
     const char* path_c = path.c_str();
-    std::vector<Object_Model<DescriptorType> > class_models;
+//    std::vector<Object_Model<DescriptorType> > class_models;
+    std::vector<Object_Model<pcl::VFHSignature308> > class_models;
 
     if((dir = opendir(path_c)) != NULL)
     {
@@ -264,16 +292,20 @@ void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::load_object_model
             if(ent->d_type == DT_REG)
             {
                 std::string model_path = path + ent->d_name;
-                typename pcl::PointCloud<DescriptorType>::Ptr descriptors (new pcl::PointCloud<DescriptorType>);
+                std::cout << "Feature matching. Reading "<<model_path << std::endl;
+//                typename pcl::PointCloud<DescriptorType>::Ptr descriptors (new pcl::PointCloud<DescriptorType>);
+                typename pcl::PointCloud<pcl::VFHSignature308>::Ptr descriptors (new pcl::PointCloud<pcl::VFHSignature308>);
 
                 if(pcl::io::loadPCDFile(model_path, *descriptors) != 0)
                     ROS_ERROR("Error reading PCD file");
                 std::cout << "Pointcloud: "<<descriptors->size()<<std::endl;
-                Object_Model<DescriptorType> obj(model_name, descriptors);
+//                Object_Model<DescriptorType> obj(model_name, descriptors);
+                Object_Model<pcl::VFHSignature308> obj(model_name, descriptors);
                 class_models.push_back(obj);
             }
         }
-        objects_model_.push_back(class_models);
+//        objects_model_.push_back(class_models);
+        objects_model_vfh_.push_back(class_models);
     }
     else
     {

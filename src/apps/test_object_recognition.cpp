@@ -23,9 +23,10 @@ int main(int argc, char* argv[])
     pcl::io::loadPCDFile(argv[1], *cloud);
 
     // ** Recognize
-    std::vector<double> class_probabilities;
-    obj_recognition.recognize(cloud, class_probabilities);
-//    std::cout << "==== The object is: "<< obj_name << " ===="<<std::endl;
-
+    std::vector<double> class_probabilities(3);
+    ros::WallTime t1(ros::WallTime::now());
+    obj_recognition.recognize_vfh(cloud, class_probabilities);
+    std::cout << "Time recognition VFH: "<<RAS_Utils::time_diff_ms(t1, ros::WallTime::now()) <<" ms"<<std::endl;
+    std::cout << "==== Probabilities: "<< class_probabilities[0] << ","<<class_probabilities[1]<<std::endl;
     return 0;
 }

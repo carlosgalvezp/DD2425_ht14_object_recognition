@@ -6,6 +6,9 @@
 #include <object_recognition/object_extractor_3d.h>
 #include <ras_utils/types.h>
 #include <boost/filesystem.hpp>
+
+#include <object_recognition/vfh_recognition.h>
+
 // ROS
 #include "ros/ros.h"
 #include <std_msgs/String.h>
@@ -72,6 +75,8 @@ private:
 
     Object_Extractor_3D object_extractor_;
     Feature_Extractor_3D<RAS_Utils::DescriptorExtractor, RAS_Utils::DescriptorType> feature_extractor_;
+
+    VFH_Recognition feature_extractor_vfh_;
 
     void RGBD_Callback(const sensor_msgs::ImageConstPtr &rgb_msg,
                        const sensor_msgs::ImageConstPtr &depth_msg);
@@ -184,10 +189,11 @@ void Vision_Training::record_data(std::string model_name)
 
 void Vision_Training::compute_models()
 {
-    ROS_INFO("======= COMPUTING MODEL =======");
+    ROS_INFO("======= COMPUTING MODEL BLABLABLA =======");
     DIR *dir;
     struct dirent *ent;
     std::string path = RAS_Names::models_3D_path;
+    std::cout << "COMPUTE MODELS PATH: "<<path<<std::endl;
     const char* path_c = path.c_str();
     // ** Open base directory, which contains a folder for every model
     if((dir = opendir(path_c)) != NULL)
@@ -245,7 +251,9 @@ void Vision_Training::process_model_folder(std::string path)
                 std::cout << "\t Saving into "<<desc_name << std::endl;
 
                 // ** Process file
-                pcl::PointCloud<RAS_Utils::DescriptorType>::Ptr descriptors (new pcl::PointCloud<RAS_Utils::DescriptorType>);
+//                pcl::PointCloud<RAS_Utils::DescriptorType>::Ptr descriptors (new pcl::PointCloud<RAS_Utils::DescriptorType>);
+                pcl::PointCloud<pcl::VFHSignature308>::Ptr descriptors (new pcl::PointCloud<pcl::VFHSignature308>);
+
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr object(new pcl::PointCloud<pcl::PointXYZRGB>);
                 pcl::PointCloud<pcl::PointXYZRGB>::Ptr keypoints(new pcl::PointCloud<pcl::PointXYZRGB>);
 
@@ -254,7 +262,8 @@ void Vision_Training::process_model_folder(std::string path)
 
                 // Extract keypoints
                 feature_extractor_.get_keypoints(object, keypoints);
-                feature_extractor_.get_descriptors(object, descriptors);
+//                feature_extractor_.get_descriptors(object, descriptors);
+                feature_extractor_vfh_.computeDescriptor(object, descriptors);
 
                 // Save descriptors
                 pcl::io::savePCDFile(desc_name, *descriptors);

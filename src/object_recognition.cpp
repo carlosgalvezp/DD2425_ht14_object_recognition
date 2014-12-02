@@ -48,8 +48,15 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
 //    cv::waitKey();
 
     // ** Call 3D recognition
-    std::vector<double> shape_probabilities;
-    classifier3D_.recognize(object_cloud, shape_probabilities);
+    std::vector<double> shape_probabilities(3);
+    classifier3D_.recognize_vfh(object_cloud, shape_probabilities);
+    // Compute p(others) as 1.0 - n_3D_points / N_color_points (small number when concave)
+    double p_others = 1.0 - object_cloud->size() / cv::countNonZero(color_mask);
+    shape_probabilities[shape_probabilities.size()-1] = p_others;
+
+    // Normalize
+    RAS_Utils::normalize_probabilities(shape_probabilities);
+
 
     // ** Call Color Bayes Classifier
     std::vector<int> color_classes{COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW, COLOR_PURPLE};

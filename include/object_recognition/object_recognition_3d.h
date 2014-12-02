@@ -10,6 +10,8 @@
 // ROS
 #include "ros/ros.h"
 
+#include <object_recognition/vfh_recognition.h>
+
 // PCL
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
@@ -21,11 +23,14 @@ class Object_Recognition_3D
 public:
     Object_Recognition_3D();
     void recognize(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object_cloud, std::vector<double> &class_probabilities);
-
+    void recognize_vfh(const pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr &object_cloud,
+                                          std::vector<double> &class_probabilities);
 private:
     Object_Extractor_3D object_extractor;
     Feature_Extractor_3D<RAS_Utils::DescriptorExtractor, RAS_Utils::DescriptorType> feature_extractor_;
     Feature_Matching_3D<RAS_Utils::DescriptorExtractor, RAS_Utils::DescriptorType> feature_matching_;
+
+    VFH_Recognition vfh_recognition_;
 };
 
 

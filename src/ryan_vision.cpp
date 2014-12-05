@@ -15,7 +15,7 @@
     int color_idx=5; //1-purple, 2-red, 3-green, 4-blue, 5-yellow
     int contour_min = 50, contour_max = 200;   //a perfect square is 75
 
-    //for recognition
+    //for sqaure recognition
     int thresh = 600, N = 20;  //initial canny old to find lines, between 600-800 works best, N is iteration times with small change in grayscale value
     double cosinethreshold=0.3; //fight against not exact 90 degrees intersection, 0.1 means almost 90degree intersections.
     int contour_pixel_min = 1500, contour_pixel_max = 3500;
@@ -134,6 +134,108 @@ for( size_t i = 0; i < squares.size(); i++ )
     polylines(image, &p, &n, 1, true, Scalar(0,255,0), 1);
     }
 imshow("Result", image);
+}
+
+static void circleRecognition(const Mat& image){
+
+/////////////////////////////////////
+//      PARAMETERS                 //
+/////////////////////////////////////
+
+
+  //parameters in Hough transform for circle detection
+  int radius_min = 35;    //red ball radius betwwen 40-75
+  int radium_max = 75;    // 0,0 means no limit
+  int conditions = 0;
+  int found_circle = 0;
+//////////////////////////////////////////////////////////
+//      1) Load image, blur, convert to grayscale       //
+//////////////////////////////////////////////////////////
+
+  /// Load an image
+
+  //image = imread( "/home/ras/shape_detector_working/circle_detection_working/build/Test/frame0002.png", CV_LOAD_IMAGE_ANYCOLOR);
+  //image = imread( "/home/ras/shape_detector_working/circle_detection_working/build/vision_data_img.2/greencylinder.png", CV_LOAD_IMAGE_ANYCOLOR);
+  //Mat image = imread( "/home/ras/shape_detector_working/circle_detection_working/build/vision_data_img.2/yellowball.png", CV_LOAD_IMAGE_ANYCOLOR);
+
+  for(double i = 1; i < 4; i++)
+  {
+  imshow("Original image", image);
+
+  Mat image_modified_lightning = image*(i/10+1);cout<<"lightning condition: lightX"<<(i/10+1)<<endl; //lightning factor 0.8-1.8
+
+
+  //namedWindow("Win1", CV_WINDOW_AUTOSIZE);
+  //imshow("Win1", image_modified_lightning);
+  //waitKey(0);
+
+  /// Blur image
+  Mat blur;
+  GaussianBlur(image_modified_lightning, blur, Size(3,3), 3, 3, BORDER_DEFAULT );  //Size Size(9,9), 2, 2,
+  //namedWindow("Win2", CV_WINDOW_AUTOSIZE);
+  //imshow("Win2", blur);
+  //waitKey(0);
+
+  /// Convert it to gray
+  Mat gray;
+  cvtColor( blur, gray, CV_RGB2GRAY );
+  //namedWindow("Win3", CV_WINDOW_AUTOSIZE);
+  //imshow("Win3", gray);
+  //waitKey(0);
+
+  //find edge using canny method
+
+  Mat canny_output;
+  for (int thresh=50; thresh<201; thresh=thresh+50){
+      conditions=conditions+1; //used for calculate probability
+      Canny(gray, canny_output, 0, thresh, 3);
+      //imshow("Win5", canny_output);
+      //waitKey(0);
+
+      //int total_pixles = ((sum(canny_output)/255)(0)); //calculate amout of pixels in the canny image
+      //cout<<"size of canny: "<<total_pixles<<endl;
+///////////////////////////////////////////////////
+//      3) Hough transform the egde image        //
+///////////////////////////////////////////////////
+
+
+    vector<Vec3f> circles;
+    //cout << "Houghtransforming, please wait"  <<endl;
+
+     /// Apply the Hough Transform to find the circles
+
+     HoughCircles( canny_output, circles, CV_HOUGH_GRADIENT, 3, image.rows, 300, 200, radius_min, radium_max );
+
+     //waitKey(0);
+
+     ///Draw the circles detected
+     Mat image_circle=Mat::zeros(image.rows, image.cols, CV_8UC1);
+     for( size_t i = 0; i < circles.size(); i++ )
+     {
+         Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+         int radius = cvRound(circles[i][2]);
+
+         // circle center
+         circle( image_circle, center, 3, Scalar(255,0,0), -1, 8, 0 );  //this function draws circles
+         //cout<< center <<endl;
+         // circle outline
+         circle( image_circle, center, radius, Scalar(255,255,255), 3, 8, 0 ); //this function draws circles
+      }
+
+     /// Show your results
+     cout<<"number of circles in this image: "<<circles.size()<<endl;
+     namedWindow( "Hough Circle", CV_WINDOW_AUTOSIZE );
+     imshow( "Hough Circle", image_circle );
+     waitKey(0);
+     if (circles.size()==1){cout<<"FOUND A CIRCLE"<<endl;found_circle=found_circle+1;}
+
+    }//end of a canny threshold
+   }//end of a light condition
+
+  cout<<"There were "<<conditions<<" conditions, "<<"There were circles in "<<found_circle<<" of them!"<<endl;
+  double belief=found_circle*100/(conditions);
+  cout<<"The probability of finding a circle is "<<belief<<"%"<<endl;
+
 }
 
 static void detect(const cv::Mat &image)
@@ -290,6 +392,9 @@ void visionRyan (const cv::Mat &image)
     }
 
     cout << "SQUARE RECOGNITION FINISHED"<<endl<<"We found squares at maximum "<<foundtimes_max<< "times per light condition"<<endl;
+//CIRCLE RECOGNITION
+
+    circleRecognition(image);
 
 //RESULT
     //find color that appears the most

@@ -23,9 +23,7 @@ Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub, const Eige
 
 bool Object_Recognition::classify(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask, std::string &result)
 {
-    classifyCarlos(bgr_img, depth_img, color_mask, result);
-//    visionRyan(bgr_img);
-    return false;
+    return classifyCarlos(bgr_img, depth_img, color_mask, result);
 }
 
 
@@ -94,6 +92,6 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
             result = this->object_names[i];
         }
     }
-    std::cout << "======= CLASSIFICATION RESULT: "<<result<<" =========="<<std::endl;
+    std::cout << "======= CLASSIFICATION RESULT: "<<result<<" =========="<<std::endl;    
     return true;
 }

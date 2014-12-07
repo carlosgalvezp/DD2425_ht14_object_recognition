@@ -50,6 +50,7 @@ private:
                         const Eigen::Matrix4f &t_cam_to_robot, std::string &result);
 
     std::vector<std::string> object_names;
+    std::vector<std::string> classifications_;
 };
 
 #endif // OBJECT_RECOGNITION_H

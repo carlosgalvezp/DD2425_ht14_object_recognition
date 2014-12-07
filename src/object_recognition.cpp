@@ -24,7 +24,12 @@ Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub)
 bool Object_Recognition::classify(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask,
                                   const Eigen::Matrix4f &t_cam_to_robot, std::string &result)
 {
+<<<<<<< Updated upstream
     return classifyCarlos(bgr_img, depth_img, color_mask, t_cam_to_robot, result);
+=======
+    //return classifyCarlos(bgr_img, depth_img, color_mask, result);
+    return visionRyan(bgr_img);
+>>>>>>> Stashed changes
 }
 
 
@@ -90,6 +95,16 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
             result = this->object_names[i];
         }
     }
-    std::cout << "======= CLASSIFICATION RESULT: "<<result<<" =========="<<std::endl;    
-    return true;
+
+    if(classifications.size() < N_CLASSIFICATIONS)
+    {
+        classifications.push_back(result);
+        return false;
+    }
+    else
+    {
+        result = RAS_Utils::get_most_repeated<std::string>(classifications);
+        classifications.clear();
+        return true;
+    }
 }

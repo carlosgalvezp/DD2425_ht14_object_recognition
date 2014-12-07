@@ -24,12 +24,8 @@ Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub)
 bool Object_Recognition::classify(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask,
                                   const Eigen::Matrix4f &t_cam_to_robot, std::string &result)
 {
-<<<<<<< Updated upstream
     return classifyCarlos(bgr_img, depth_img, color_mask, t_cam_to_robot, result);
-=======
-    //return classifyCarlos(bgr_img, depth_img, color_mask, result);
-    return visionRyan(bgr_img);
->>>>>>> Stashed changes
+//    return visionRyan(bgr_img);
 }
 
 

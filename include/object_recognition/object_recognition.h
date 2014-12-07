@@ -23,7 +23,7 @@
 #include <Eigen/Core>
 
 #define N_CLASSIFICATIONS 10 // Number of classifications
-
+#define SCALE_FACTOR      0.25
 /**
  * @brief Combines 2D and 3D object recognition to achieve the final classifier
  */

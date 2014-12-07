@@ -38,17 +38,17 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
 
     // ** Build object point cloud and transform into robot frame
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-    PCL_Utils::buildPointCloud(rgb_masked, depth_masked, object_cloud, 0.25);
+    PCL_Utils::buildPointCloud(rgb_masked, depth_masked, object_cloud, SCALE_FACTOR);
     pcl::transformPointCloud(*object_cloud, *object_cloud, t_cam_to_robot);
     object_cloud->header.frame_id = COORD_FRAME_ROBOT;
     pcl_pub_.publish(object_cloud);
 
     // ** Call 3D recognition
-    std::vector<double> shape_probabilities(3);
+    std::vector<double> shape_probabilities(RAS_Names::MODELS_3D_NAMES.size()+1);
     classifier3D_.recognize_vfh(object_cloud, shape_probabilities);
 
     // Compute p(others) as 1.0 - n_3D_points / N_color_points (small number when concave)
-    double p_others = 1.0 - (double)object_cloud->size() / (double)(cv::countNonZero(color_mask)*(0.25*0.25));
+    double p_others = 1.0 - (double) object_cloud->size() / (double)(cv::countNonZero(color_mask)*(SCALE_FACTOR*SCALE_FACTOR));
     shape_probabilities[shape_probabilities.size()-1] = p_others;
 
     // Normalize
@@ -66,13 +66,13 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
 
 //    // ** Compute probabilities for every object
     std::vector<double> object_probabilities(10);
-    object_probabilities[OBJECT_IDX_RED_CUBE]       = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_RED];
-    object_probabilities[OBJECT_IDX_BLUE_CUBE]      = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_BLUE];
-    object_probabilities[OBJECT_IDX_GREEN_CUBE]     = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_GREEN];
-    object_probabilities[OBJECT_IDX_YELLOW_CUBE]    = shape_probabilities[SHAPE_3D_CUBE] * color_probabilities[COLOR_YELLOW];
+    object_probabilities[OBJECT_IDX_RED_CUBE]       = shape_probabilities[SHAPE_3D_CUBE]  * color_probabilities[COLOR_RED];
+    object_probabilities[OBJECT_IDX_BLUE_CUBE]      = shape_probabilities[SHAPE_3D_CUBE]  * color_probabilities[COLOR_BLUE];
+    object_probabilities[OBJECT_IDX_GREEN_CUBE]     = shape_probabilities[SHAPE_3D_CUBE]  * color_probabilities[COLOR_GREEN];
+    object_probabilities[OBJECT_IDX_YELLOW_CUBE]    = shape_probabilities[SHAPE_3D_CUBE]  * color_probabilities[COLOR_YELLOW];
 
-    object_probabilities[OBJECT_IDX_YELLOW_BALL]    = shape_probabilities[SHAPE_3D_BALL] * color_probabilities[COLOR_YELLOW];
-    object_probabilities[OBJECT_IDX_RED_BALL]       = shape_probabilities[SHAPE_3D_BALL] * color_probabilities[COLOR_RED];
+    object_probabilities[OBJECT_IDX_YELLOW_BALL]    = shape_probabilities[SHAPE_3D_BALL]  * color_probabilities[COLOR_YELLOW];
+    object_probabilities[OBJECT_IDX_RED_BALL]       = shape_probabilities[SHAPE_3D_BALL]  * color_probabilities[COLOR_RED];
 
     object_probabilities[OBJECT_IDX_GREEN_CYLINDER] = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_GREEN];
     object_probabilities[OBJECT_IDX_BLUE_TRIANGLE]  = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_BLUE];

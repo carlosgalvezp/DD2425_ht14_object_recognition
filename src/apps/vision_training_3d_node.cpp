@@ -212,7 +212,7 @@ void Vision_Training::compute_models()
     }
     else
     {
-        std::cout <<"Can't read directory "<<path<<std::endl;
+        std::cout <<"[ComputeModels] Can't read directory "<<path<<std::endl;
     }
 }
 
@@ -272,7 +272,7 @@ void Vision_Training::process_model_folder(std::string path)
     }
     else
     {
-        std::cout <<"Can't read directory "<<path_c<<std::endl;
+        std::cout <<"[Process folder] Can't read directory "<<path_c<<std::endl;
     }
 }
 

@@ -246,31 +246,13 @@ void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::one_way_correspon
 template<typename DescriptorExtractor, typename DescriptorType>
 void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::load_models()
 {
-    std::cout << "Loading object models..."<<std::endl;
-    // ** Read models directory and retrieve the PCD descriptors
-    DIR *dir;
-    struct dirent *ent;
-    std::string models_path = RAS_Names::MODELS_3D_PATH;
-    std::cout << "Models path: " << models_path << std::endl;
-
-    if((dir = opendir(models_path.c_str())) != NULL)
+    for(std::size_t i = 0; i < RAS_Names::MODELS_3D_NAMES.size(); ++i)
     {
-        // ** Read entities (files or folders) and process folders only
-        while((ent = readdir(dir)) != NULL)
-        {
-            if(ent->d_type == DT_DIR && ent->d_name[0] != '.')
-            {
-                std::string model_name = ent->d_name;
-                std::string model_path = models_path + model_name + "/descriptors/";
-                load_object_model(model_path, model_name);
-            }
-        }
+        std::string model_name = RAS_Names::MODELS_3D_NAMES[i];
+        std::string model_path = RAS_Names::MODELS_3D_PATH+ model_name + "/descriptors/";
+        load_object_model(model_path, model_name);
+    }
 
-    }
-    else
-    {
-        std::cout <<"Can't read directory " << models_path<<std::endl;
-    }
 }
 
 template<typename DescriptorExtractor, typename DescriptorType>

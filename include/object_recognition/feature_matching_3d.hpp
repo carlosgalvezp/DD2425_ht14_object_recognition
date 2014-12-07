@@ -250,7 +250,7 @@ void Feature_Matching_3D<DescriptorExtractor, DescriptorType>::load_models()
     // ** Read models directory and retrieve the PCD descriptors
     DIR *dir;
     struct dirent *ent;
-    std::string models_path = RAS_Names::models_3D_path;
+    std::string models_path = RAS_Names::MODELS_3D_PATH;
     std::cout << "Models path: " << models_path << std::endl;
 
     if((dir = opendir(models_path.c_str())) != NULL)

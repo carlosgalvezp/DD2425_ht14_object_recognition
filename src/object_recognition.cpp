@@ -4,8 +4,8 @@ Object_Recognition::Object_Recognition()
 {
 }
 
-Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub, const Eigen::Matrix4f &t_cam_to_robot)
-    : pcl_pub_(pcl_pub), t_cam_to_robot_(t_cam_to_robot)
+Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub)
+    : pcl_pub_(pcl_pub)
 {
     object_names = {OBJECT_NAME_RED_CUBE,
                     OBJECT_NAME_BLUE_CUBE,
@@ -21,13 +21,15 @@ Object_Recognition::Object_Recognition(const ros::Publisher &pcl_pub, const Eige
 }
 
 
-bool Object_Recognition::classify(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask, std::string &result)
+bool Object_Recognition::classify(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask,
+                                  const Eigen::Matrix4f &t_cam_to_robot, std::string &result)
 {
-    return classifyCarlos(bgr_img, depth_img, color_mask, result);
+    return classifyCarlos(bgr_img, depth_img, color_mask, t_cam_to_robot, result);
 }
 
 
-bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask, std::string &result)
+bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &depth_img, const cv::Mat &color_mask,
+                                        const Eigen::Matrix4f &t_cam_to_robot, std::string &result)
 {
     // ** Mask rgb and depth img
     cv::Mat rgb_masked, depth_masked;
@@ -37,13 +39,9 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     // ** Build object point cloud and transform into robot frame
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
     PCL_Utils::buildPointCloud(rgb_masked, depth_masked, object_cloud, 0.25);
-    pcl::transformPointCloud(*object_cloud, *object_cloud, t_cam_to_robot_);
+    pcl::transformPointCloud(*object_cloud, *object_cloud, t_cam_to_robot);
+    object_cloud->header.frame_id = COORD_FRAME_ROBOT;
     pcl_pub_.publish(object_cloud);
-
-//    pcl::io::savePCDFile("/home/carlos/3d_data/test/my_test.pcd", *object_cloud);
-//    std::cout << "SAVED FILE"<<std::endl;
-//    cv::namedWindow("");
-//    cv::waitKey();
 
     // ** Call 3D recognition
     std::vector<double> shape_probabilities(3);

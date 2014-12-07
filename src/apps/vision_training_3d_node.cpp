@@ -155,7 +155,7 @@ void Vision_Training::record_data(std::string model_name)
     // ** Publish data
     ros::Rate rate(PUBLISH_RATE);
     int n_item = 1;
-    std::string path = RAS_Names::models_3D_path + model_name+"/";
+    std::string path = RAS_Names::MODELS_3D_PATH + model_name+"/";
     // Create folder if it does not exist
     boost::filesystem::create_directory(path);
 
@@ -189,11 +189,10 @@ void Vision_Training::record_data(std::string model_name)
 
 void Vision_Training::compute_models()
 {
-    ROS_INFO("======= COMPUTING MODEL BLABLABLA =======");
     DIR *dir;
     struct dirent *ent;
-    std::string path = RAS_Names::models_3D_path;
-    std::cout << "COMPUTE MODELS PATH: "<<path<<std::endl;
+    std::string path = RAS_Names::MODELS_3D_PATH;
+
     const char* path_c = path.c_str();
     // ** Open base directory, which contains a folder for every model
     if((dir = opendir(path_c)) != NULL)

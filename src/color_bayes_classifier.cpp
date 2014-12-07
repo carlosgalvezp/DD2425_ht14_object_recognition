@@ -27,7 +27,7 @@ void Color_Bayes_Classifier::read_models()
         m_constants.th_h_mahalanobis = TH_MAHALANOBIS * model.h_sigma;
         m_constants.th_s_mahalanobis = TH_MAHALANOBIS * model.s_sigma;
 
-        std::cout << "Reading model "<<model.name<<std::endl;
+        std::cout << "Reading color model "<<model.name<<std::endl;
         models_.push_back(model);
         models_constants_.push_back(m_constants);
     }

@@ -11,8 +11,6 @@
 // OpenCV
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-const std::string models_rel_path = "/color_data/";
-
 struct Color_Model
 {
     std::string name;

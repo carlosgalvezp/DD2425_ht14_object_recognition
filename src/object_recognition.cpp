@@ -50,11 +50,13 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
 
     // Compute p(others) as 1.0 - n_3D_points / N_color_points (small number when concave)
     double p_others = 1.0 - (double) object_cloud->size() / (double)(cv::countNonZero(color_mask)*(SCALE_FACTOR*SCALE_FACTOR));
+    std::cout << "P OTHERS " << p_others<<std::endl;
+    std::cout << "P CUBE " << shape_probabilities[0] <<std::endl;
+    std::cout << "P BALL " << shape_probabilities[1]<<std::endl;
     shape_probabilities[shape_probabilities.size()-1] = p_others;
 
     // Normalize
     RAS_Utils::normalize_probabilities(shape_probabilities);
-
 
     // ** Call Color Bayes Classifier
     std::vector<int> color_classes{COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW, COLOR_PURPLE};
@@ -92,15 +94,6 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
         }
     }
 
-    if(classifications.size() < N_CLASSIFICATIONS)
-    {
-        classifications.push_back(result);
-        return false;
-    }
-    else
-    {
-        result = RAS_Utils::get_most_repeated<std::string>(classifications);
-        classifications.clear();
-        return true;
-    }
+    std::cout << "CLASSIFICATION: " << result<<std::endl;
+    return true;
 }

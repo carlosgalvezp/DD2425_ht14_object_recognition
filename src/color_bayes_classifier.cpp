@@ -7,9 +7,7 @@ Color_Bayes_Classifier::Color_Bayes_Classifier()
 
 void Color_Bayes_Classifier::read_models()
 {
-    std::ifstream file;
-    std::string models_path = std::string(getenv("HOME")) + models_rel_path +"models.txt";
-    file.open(models_path.c_str());
+    std::ifstream file(RAS_Names::MODELS_COLOR_PATH);
 
     int n_colors;
     file >> n_colors;

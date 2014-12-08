@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 void train_models(std::vector<Color_Model> &models)
 {
     // ** Get list of directories
-    std::string main_path = std::string(getenv("HOME")) + models_rel_path;
+    std::string main_path = RAS_Names::MODELS_COLOR_ROOT;
     std::vector<std::pair<std::string, std::string> > model_directories;
     getDirectories(main_path, model_directories);
 
@@ -121,7 +121,7 @@ void save_data(const std::vector<Color_Model> &models)
 {
     std::cout << "Saving data..."<<std::endl;
     std::ofstream myfile;
-    std::string path = std::string(getenv("HOME")) + models_rel_path + std::string("models.txt");
+    std::string path = RAS_Names::MODELS_COLOR_PATH;
     myfile.open(path.c_str());
     myfile << models.size() << std::endl;
     for(std::size_t i = 0; i < models.size(); ++i)

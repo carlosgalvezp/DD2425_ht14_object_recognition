@@ -22,7 +22,6 @@
 // Eigen
 #include <Eigen/Core>
 
-#define N_CLASSIFICATIONS 10 // Number of classifications
 #define SCALE_FACTOR      0.25
 /**
  * @brief Combines 2D and 3D object recognition to achieve the final classifier
@@ -40,8 +39,6 @@ private:
     Color_Bayes_Classifier color_classifier_;
     Object_Recognition_3D classifier3D_;
 //    Shape_Detector_2D shape_detector_;
-    std::vector<std::string> classifications;
-
     ros::Publisher pcl_pub_;
 
     bool is_concave(const cv::Mat &depth_img, const cv::Mat &mask_img);

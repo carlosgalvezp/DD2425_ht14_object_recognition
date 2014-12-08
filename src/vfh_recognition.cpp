@@ -24,6 +24,9 @@ void VFH_Recognition::computeDescriptor(const pcl::PointCloud<pcl::PointXYZRGB>:
     normal_estimation.setInputCloud (cloud_in_downsampled);
     normal_estimation.compute (*normals);
 
+    // ** Filter NaN
+    std::vector<int> indices;
+    pcl::removeNaNNormalsFromPointCloud(*normals, *normals, indices);
 
     // ** VFH
     pcl::VFHEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::VFHSignature308> vfh;

@@ -59,7 +59,8 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     RAS_Utils::normalize_probabilities(shape_probabilities);
 
     // ** Call Color Bayes Classifier
-    std::vector<int> color_classes{COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW, COLOR_PURPLE, COLOR_LIGHT_GREEN, COLOR_ORANGE};
+    std::vector<int> color_classes{COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW,
+                                   COLOR_PURPLE, COLOR_LIGHT_GREEN, COLOR_ORANGE};
     std::vector<double> color_probabilities(color_classes.size());
 
     cv::Mat hsv_img;

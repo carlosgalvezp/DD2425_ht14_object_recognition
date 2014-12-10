@@ -10,9 +10,14 @@ using namespace std;
 
 
     //for color detection
-    int hue_low_blue =0, hue_low_red =110, hue_low_green =50, hue_low_purple =140, hue_low_yellow =90;
-    int hue_high_blue=30, hue_high_red=130, hue_high_green=85, hue_high_purple=170, hue_high_yellow=100;
-    int sat_low=150, sat_high=255, bright_low=0, bright_high=255;
+
+    int hue_low_blue  =5  , hue_low_red  =115, hue_low_green  =50 , hue_low_purple  =140 , hue_low_yellow  =95;
+    int hue_high_blue =25 , hue_high_red =125, hue_high_green =85 , hue_high_purple =170 , hue_high_yellow =110;
+    int sat_low_blue  =1 ,  sat_low_red  =100, sat_low_green  =1  , sat_low_purple  =80  , sat_low_yellow  =150;
+    int sat_high_blue =255, sat_high_red =255, sat_high_green =255, sat_high_purple =255 , sat_high_yellow =255;
+    int bri_low_blue  =1  , bri_low_red  =1  , bri_low_green  =1  , bri_low_purple  =1   , bri_low_yellow  =1;
+    int bri_high_blue =255, bri_high_red =255, bri_high_green =255, bri_high_purple  =255, bri_high_yellow =255;
+
 
     int max_contour_pixles=2000;
 
@@ -37,7 +42,7 @@ using namespace std;
 int color_detection(const cv::Mat &image,int color_idx)
 {
     int purple=0, red=0, green=0, blue=0, yellow=0; //how many times have the algorithm detected a color
-    int hue_low, hue_high;
+   int hue_low,hue_high,sat_low,sat_high,bri_low,bri_high;
     int color_index=0;
     int color=1;
     for(color = 1; color < 6; color++){
@@ -53,13 +58,14 @@ int color_detection(const cv::Mat &image,int color_idx)
 /////////////////////////////////////////////////////////////////////////////////////////////
 
                 Mat img_binary;
-                if(color==1){hue_low = hue_low_purple; hue_high = hue_high_purple;contour_min=50;}
-                if(color==2){hue_low = hue_low_red; hue_high = hue_high_red;contour_min=30;}
-                if(color==3){hue_low = hue_low_green; hue_high = hue_high_green;contour_min=50;}
-                if(color==4){hue_low = hue_low_blue; hue_high = hue_high_blue;contour_min=50;}
-                if(color==5){hue_low = hue_low_yellow; hue_high = hue_high_yellow;contour_min=50;}
+                if(color==1){hue_low = hue_low_purple; hue_high = hue_high_purple; sat_low = sat_low_purple; sat_high = sat_high_purple; bri_low = bri_low_purple; bri_high = bri_high_purple; contour_min=50;}
+                if(color==2){hue_low = hue_low_red;    hue_high = hue_high_red;    sat_low = sat_low_red;    sat_high = sat_high_red;    bri_low = bri_low_red;    bri_high = bri_high_red;    contour_min=30;}
+                if(color==3){hue_low = hue_low_green;  hue_high = hue_high_green;  sat_low = sat_low_green;  sat_high = sat_high_green;  bri_low = bri_low_green;  bri_high = bri_high_green;  contour_min=50;}
+                if(color==4){hue_low = hue_low_blue;   hue_high = hue_high_blue;   sat_low = sat_low_blue;   sat_high = sat_high_blue;   bri_low = bri_low_blue;   bri_high = bri_high_blue;   contour_min=50;}
+                if(color==5){hue_low = hue_low_yellow; hue_high = hue_high_yellow; sat_low = sat_low_yellow; sat_high = sat_high_yellow; bri_low = bri_low_yellow; bri_high = bri_high_yellow; contour_min=50;}
 
-                inRange(img_hsv, Scalar(hue_low, sat_low, bright_low), Scalar(hue_high, sat_high, bright_high), img_binary);
+
+                inRange(img_hsv, Scalar(hue_low, sat_low, bri_low), Scalar(hue_high, sat_high, bri_high), img_binary);
                 //imshow("red mask",img_binary;)
                 //imshow("Input image",img_binary);waitKey(0);
                 erode( img_binary, img_binary, Mat(), Point(-1,-1),2); //remove all single pixels

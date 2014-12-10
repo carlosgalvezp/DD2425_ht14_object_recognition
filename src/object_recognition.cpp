@@ -59,7 +59,7 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     RAS_Utils::normalize_probabilities(shape_probabilities);
 
     // ** Call Color Bayes Classifier
-    std::vector<int> color_classes{COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW, COLOR_PURPLE};
+    std::vector<int> color_classes{COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_YELLOW, COLOR_PURPLE, COLOR_LIGHT_GREEN, COLOR_ORANGE};
     std::vector<double> color_probabilities(color_classes.size());
 
     cv::Mat hsv_img;
@@ -77,10 +77,10 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
     object_probabilities[OBJECT_IDX_YELLOW_BALL]    = shape_probabilities[SHAPE_3D_BALL]  * color_probabilities[COLOR_YELLOW];
     object_probabilities[OBJECT_IDX_RED_BALL]       = shape_probabilities[SHAPE_3D_BALL]  * color_probabilities[COLOR_RED];
 
-    object_probabilities[OBJECT_IDX_GREEN_CYLINDER] = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_GREEN];
+    object_probabilities[OBJECT_IDX_GREEN_CYLINDER] = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_LIGHT_GREEN];
     object_probabilities[OBJECT_IDX_BLUE_TRIANGLE]  = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_BLUE];
     object_probabilities[OBJECT_IDX_PURPLE_CROSS]   = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_PURPLE];
-    object_probabilities[OBJECT_IDX_PATRIC]         = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_RED];
+    object_probabilities[OBJECT_IDX_PATRIC]         = shape_probabilities[SHAPE_3D_OTHER] * color_probabilities[COLOR_ORANGE];
 
     // ** Pick the most likely
     double max_p = 0.0;

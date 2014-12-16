@@ -25,7 +25,6 @@ bool Object_Recognition::classify(const cv::Mat &bgr_img, const cv::Mat &depth_i
                                   const Eigen::Matrix4f &t_cam_to_robot, std::string &result)
 {
     return classifyCarlos(bgr_img, depth_img, color_mask, t_cam_to_robot, result);
-//    return visionRyan(bgr_img);
 }
 
 
@@ -65,7 +64,7 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
 
     color_classifier_.classify(hsv_img, color_mask, color_classes, color_probabilities);
 
-//    // ** Compute probabilities for every object
+    // ** Compute probabilities for every object
     std::vector<double> object_probabilities(10);
     object_probabilities[OBJECT_IDX_RED_CUBE]       = shape_probabilities[SHAPE_3D_CUBE]  * color_probabilities[COLOR_RED];
     object_probabilities[OBJECT_IDX_BLUE_CUBE]      = shape_probabilities[SHAPE_3D_CUBE]  * color_probabilities[COLOR_BLUE];
@@ -82,6 +81,7 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
 
     // ** Pick the most likely
     double max_p = 0.0;
+    result = OBJECT_NAME_UNKNOWN;
     for(std::size_t i = 0; i < object_probabilities.size(); ++i)
     {
         double p = object_probabilities[i];
@@ -91,7 +91,8 @@ bool Object_Recognition::classifyCarlos(const cv::Mat &bgr_img, const cv::Mat &d
             result = this->object_names[i];
         }
     }
-
+    if(result == OBJECT_NAME_UNKNOWN)
+        return false;
     std::cout << "CLASSIFICATION: " << result<<std::endl;
     return true;
 }

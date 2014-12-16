@@ -39,5 +39,6 @@ void Object_Recognition_3D::recognize_vfh(const pcl::PointCloud<pcl::PointXYZRGB
     else
     {
         ROS_INFO("[Object_Recognition_3D::recognize] Object_cloud = 0");
+        class_probabilities = {4.0/10.0, 2.0/10.0, 4.0/10.0};
     }
 }
